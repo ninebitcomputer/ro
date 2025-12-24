@@ -19,10 +19,8 @@ Expression:
 	
 	t1: mul | div | atomic
 	mul: t1 * atomic
-	div: t1 / atmoic
+	div: t1 / atomic
 	
-	
-	t2: add | sub | t3
 	atomic: ( t0 ) | number
 	
 
