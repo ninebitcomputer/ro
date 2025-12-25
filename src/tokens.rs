@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     PLUS,
     MINUS,
@@ -9,7 +9,7 @@ pub enum Token {
     DIGIT(Digit),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Digit {
     ZERO,
     ONE,
@@ -52,6 +52,21 @@ impl Digit {
             Digit::SEVEN => 7,
             Digit::EIGHT => 8,
             Digit::NINE => 9,
+        }
+    }
+}
+
+impl Token {
+    pub fn to_char(&self) -> char {
+        match self {
+            Token::PLUS => '+',
+            Token::MINUS => '-',
+            Token::ASTER => '*',
+            Token::SLASH => '/',
+            Token::LPAREN => '(',
+            Token::RPAREN => ')',
+            Token::DIGIT(d) => 'D',
+            //Token::DIGIT(d) => d.num().to_ascii_lowercase() as char,
         }
     }
 }
