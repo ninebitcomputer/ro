@@ -10,8 +10,8 @@ pub trait Parse {
 
 impl Parse for Atom {
     fn parse(tokens: &[LexedToken]) -> Option<Self> {
-        println!("Atom");
-        log_tokens(tokens);
+        //println!("Atom");
+        //log_tokens(tokens);
 
         if let Some(i) = parse_number(tokens) {
             return Some(Self::Number(i));
@@ -39,8 +39,8 @@ impl Parse for Atom {
 
 impl Parse for Mul {
     fn parse(tokens: &[LexedToken]) -> Option<Self> {
-        println!("Mul");
-        log_tokens(tokens);
+        //println!("Mul");
+        //log_tokens(tokens);
 
         let (a, b) = split_left_assoc(tokens, Token::ASTER)?;
         Some(Self {
@@ -52,8 +52,8 @@ impl Parse for Mul {
 
 impl Parse for Div {
     fn parse(tokens: &[LexedToken]) -> Option<Self> {
-        println!("Div");
-        log_tokens(tokens);
+        //println!("Div");
+        //log_tokens(tokens);
 
         let (a, b) = split_left_assoc(tokens, Token::SLASH)?;
         Some(Self {
@@ -64,8 +64,8 @@ impl Parse for Div {
 }
 impl Parse for Add {
     fn parse(tokens: &[LexedToken]) -> Option<Self> {
-        println!("Add");
-        log_tokens(tokens);
+        //println!("Add");
+        //log_tokens(tokens);
 
         let (a, b) = split_left_assoc(tokens, Token::PLUS)?;
         Some(Self {
@@ -76,8 +76,8 @@ impl Parse for Add {
 }
 impl Parse for Sub {
     fn parse(tokens: &[LexedToken]) -> Option<Self> {
-        println!("Sub");
-        log_tokens(tokens);
+        //println!("Sub");
+        //log_tokens(tokens);
 
         let (a, b) = split_left_assoc(tokens, Token::MINUS)?;
         Some(Self {
@@ -88,8 +88,8 @@ impl Parse for Sub {
 }
 impl Parse for T0 {
     fn parse(tokens: &[LexedToken]) -> Option<Self> {
-        println!("T0");
-        log_tokens(tokens);
+        //println!("T0");
+        //log_tokens(tokens);
 
         if let Some(x) = Add::parse(tokens) {
             return Some(Self::Add(Box::new(x)));
@@ -105,8 +105,8 @@ impl Parse for T0 {
 }
 impl Parse for T1 {
     fn parse(tokens: &[LexedToken]) -> Option<Self> {
-        println!("T1");
-        log_tokens(tokens);
+        //println!("T1");
+        //log_tokens(tokens);
 
         if let Some(x) = Mul::parse(tokens) {
             return Some(Self::Mul(Box::new(x)));
