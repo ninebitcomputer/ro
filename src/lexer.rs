@@ -1,3 +1,5 @@
+use std::{iter::Peekable, str::Chars};
+
 use crate::tokens::*;
 
 #[derive(Debug, Clone)]
@@ -20,6 +22,43 @@ pub enum LexerErrorReason {
 pub struct LexerError {
     pub info: TokenInfo,
     pub reason: LexerErrorReason,
+}
+
+pub struct Lexer {
+    stream: String,
+}
+
+pub struct LexerIterator<'a> {
+    chars: Peekable<Chars<'a>>,
+}
+
+impl<'a> Iterator for LexerIterator<'a> {
+    type Item = Result<LexedToken, LexerError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(cur) = self.chars.peek() {
+            match *cur {
+                _ => Some(Err(LexerError {
+                    info: TokenInfo { position: idx },
+                    reason: LexerErrorReason::UnknownToken(ch),
+                })),
+            };
+            None
+        } else {
+            None
+        }
+    }
+}
+
+impl Lexer {
+    pub fn new(stream: String) -> Self {
+        Self { stream }
+    }
+    pub fn iter(&'_ self) -> LexerIterator<'_> {
+        LexerIterator {
+            chars: self.stream.chars().peekable(),
+        }
+    }
 }
 
 pub fn lex(stream: &str) -> Result<Vec<LexedToken>, LexerError> {

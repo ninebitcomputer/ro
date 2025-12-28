@@ -1,7 +1,17 @@
+
+# Rewrite
+
+- [ ] Support floats
+- [ ] Lexer parses numbers
+- [ ] Parans parsing broken
+- [ ] AST doesn't need to know about operator prec
+- [ ] Environments
+
+
+# Design
+
 ```
 Expression: 
-	expr: t0
-	
 	digit: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 	number: number digit | digit
 	
@@ -9,17 +19,14 @@ Expression:
 	// 5*3+8 + 3
 	// 5 * 7 + 3
 	
-	expr: t0
+	expr: binary | atomic
+    binary: mul | div | add | sub
+    mul | expr * atomic
+    div | expr / atomic
+
+    add | expr + atomic
+    sub | expr - atomic
 	
-	// 5 + 4 - 3 - 2 + 8
-	// 
-	t0: add | sub | t1
-	add: t0 + t1 
-	sub: t0 - t1
-	
-	t1: mul | div | atomic
-	mul: t1 * atomic
-	div: t1 / atomic
 	
 	atomic: ( t0 ) | number
 	
