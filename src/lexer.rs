@@ -48,7 +48,7 @@ impl<'a> Lexer<'a> {
 
     fn next_token(&mut self) -> Option<LexedToken> {
         self.consume_whitespace();
-        if let Some(ch) = self.chars.peek() {
+        if let Some(ch) = self.chars.next() {
             let tk = match ch {
                 '+' => Token::PLUS,
                 '-' => Token::MINUS,
@@ -68,7 +68,6 @@ impl<'a> Lexer<'a> {
                     }
                 }
             };
-            self.chars.next();
             Some(LexedToken {
                 info: TokenInfo { position: 0 },
                 token: tk,
