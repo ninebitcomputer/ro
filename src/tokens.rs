@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum Token {
     PLUS,
     MINUS,
@@ -6,8 +6,9 @@ pub enum Token {
     SLASH,
     LPAREN,
     RPAREN,
-    ILLEGAL,
     NUMBER(u32),
+    ILLEGAL,
+    EOF,
 }
 
 impl Token {
@@ -18,6 +19,16 @@ impl Token {
             Token::ASTER => Some(1),
             Token::SLASH => Some(1),
             _ => None,
+        }
+    }
+
+    pub fn is_op(&self) -> bool {
+        match self {
+            Token::PLUS => true,
+            Token::MINUS => true,
+            Token::ASTER => true,
+            Token::SLASH => true,
+            _ => false,
         }
     }
 }

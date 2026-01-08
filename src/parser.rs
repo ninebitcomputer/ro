@@ -9,14 +9,66 @@ pub trait Parse {
         Self: Sized;
 }
 
-pub fn parse_expr(mut l: Peekable<&mut Lexer>) -> Option<Expr> {
-    let mut nstack: Vec<u32> = Vec::new();
-    let mut ostack: Vec<Token> = Vec::new();
+pub fn parse_expr(lexer: &mut Peekable<Lexer>, l: Option<Expr>, min_prec: u32) -> Option<Expr> {
+    let mut lhs = if let Some(x) = l {
+        x
+    } else {
+        expect_atomic(lexer)?
+    };
 
-    while let Some(tk) = l.peek() {
-        if let Token::NUMBER(n) = tk.token {
-            nstack.push(n);
+    let mut lookahead = lexer.peek().cloned();
+    while let Some(op) = lookahead
+        && let Some(p) = op.token.to_prec()
+        && p >= min_prec
+    {
+        lexer.next();
+        let mut rhs = expect_atomic(lexer)?;
+        lookahead = lexer.peek().cloned();
+
+        while let Some(n_op) = lookahead
+            && let Some(n_p) = n_op.token.to_prec()
+            && n_p > p
+        {
+            rhs = parse_expr(lexer, Some(rhs), p + 1)?;
+            lookahead = lexer.peek().cloned();
         }
+
+        let binop = match op.token {
+            Token::PLUS => Op::Add,
+            Token::MINUS => Op::Sub,
+            Token::ASTER => Op::Mul,
+            Token::SLASH => Op::Div,
+            _ => {
+                return None;
+            }
+        };
+
+        lhs = Expr::Binop(Binop {
+            a: Box::new(lhs),
+            op: binop,
+            b: Box::new(rhs),
+        })
     }
-    None
+    Some(lhs)
+}
+
+pub fn expect_atomic(lexer: &mut Peekable<Lexer>) -> Option<Expr> {
+    let tk = lexer.peek()?.clone();
+
+    if let Token::LPAREN = tk.token {
+        lexer.next();
+        let expr = parse_expr(lexer, None, 0)?;
+        let rhs = lexer.peek()?.clone();
+        if let Token::RPAREN = rhs.token {
+            lexer.next();
+            Some(expr)
+        } else {
+            None
+        }
+    } else if let Token::NUMBER(n) = tk.token {
+        lexer.next();
+        Some(Expr::Unary(Unary::Intermediate(n.into())))
+    } else {
+        None
+    }
 }

@@ -1,6 +1,9 @@
 use std::io::{Write, stdout};
 
-use crate::{eval::Eval, parser::Parse};
+use crate::{
+    eval::Eval,
+    parser::{Parse, parse_expr},
+};
 
 pub mod ast;
 pub mod eval;
@@ -10,9 +13,12 @@ pub mod tokens;
 
 fn main() {
     let s = "1-8+5*32/ 0x20 - 3 * (2 + 8)";
-    let mut lexer = lexer::Lexer::new(s.chars().peekable());
+    let mut lexer = lexer::Lexer::new(s.chars().peekable()).peekable();
 
-    while let Some(t) = lexer.next() {
+    let r = parse_expr(&mut lexer, None, 0);
+    println!("{:?}", r);
+
+    /* while let Some(t) = lexer.next() {
         println!("{:?}", t);
-    }
+    } */
 }

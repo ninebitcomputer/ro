@@ -2,12 +2,12 @@ use std::{iter::Peekable, str::Chars};
 
 use crate::tokens::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct TokenInfo {
     pub position: u32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct LexedToken {
     pub info: TokenInfo,
     pub token: Token,

@@ -8,18 +8,18 @@ pub enum Op {
 
 #[derive(Debug)]
 pub enum Expr {
-    Unary,
-    Binop,
+    Unary(Unary),
+    Binop(Binop),
 }
 
 #[derive(Debug)]
 pub enum Unary {
-    Intermediate(i32),
+    Intermediate(i64),
 }
 
 #[derive(Debug)]
 pub struct Binop {
-    pub a: Expr,
+    pub a: Box<Expr>,
     pub op: Op,
-    pub b: Expr,
+    pub b: Box<Expr>,
 }
