@@ -18,6 +18,10 @@ fn main() {
     let r = parse_expr(&mut lexer, None, 0);
     println!("{:?}", r);
 
+    if let Some(e) = r {
+        e.pprint();
+    }
+
     /* while let Some(t) = lexer.next() {
         println!("{:?}", t);
     } */
