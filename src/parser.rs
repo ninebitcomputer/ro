@@ -67,7 +67,7 @@ pub fn expect_atomic(lexer: &mut Peekable<Lexer>) -> Option<Expr> {
         }
     } else if let Token::NUMBER(n) = tk.token {
         lexer.next();
-        Some(Expr::Unary(Unary::Intermediate(n.into())))
+        Some(Expr::Intermediate(n.into()))
     } else {
         None
     }

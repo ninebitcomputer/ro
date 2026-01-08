@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug)]
 pub enum Op {
     Sub,
@@ -9,13 +11,12 @@ pub enum Op {
 #[derive(Debug)]
 pub enum Expr {
     Unary(Unary),
+    Intermediate(i64),
     Binop(Binop),
 }
 
 #[derive(Debug)]
-pub enum Unary {
-    Intermediate(i64),
-}
+pub enum Unary {}
 
 #[derive(Debug)]
 pub struct Binop {
@@ -23,3 +24,5 @@ pub struct Binop {
     pub op: Op,
     pub b: Box<Expr>,
 }
+
+impl Expr {}
