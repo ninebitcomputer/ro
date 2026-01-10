@@ -59,6 +59,9 @@ impl<'a> Lexer<'a> {
             '/' => Some(Token::SLASH),
             '(' => Some(Token::LPAREN),
             ')' => Some(Token::RPAREN),
+            '{' => Some(Token::LCURL),
+            '}' => Some(Token::RCURL),
+            ';' => Some(Token::SEMICOLON),
             _ => None,
         }
     }
@@ -68,6 +71,34 @@ impl<'a> Lexer<'a> {
             Token::NUMBER(n)
         } else {
             Token::ILLEGAL
+        }
+    }
+
+    fn expect_string(&mut self) -> Token {
+        let mut s = String::with_capacity(16);
+        while let Some(x) = self.chars.peek()
+            && let 'a'..='z' | 'A'..='Z' = x
+        {
+            s.push(*x);
+            self.chars.next();
+        }
+        if s.len() == 0 {
+            return Token::ILLEGAL;
+        }
+        if let Some(kwd) = Self::lookup_keyword(s.as_str()) {
+            kwd
+        } else {
+            Token::IDENT(s)
+        }
+    }
+
+    fn lookup_keyword(s: &str) -> Option<Token> {
+        match s {
+            "if" => Some(Token::IF),
+            "else" => Some(Token::IF),
+            "int" => Some(Token::INT),
+            "float" => Some(Token::FLOAT),
+            _ => None,
         }
     }
 
@@ -100,6 +131,7 @@ impl<'a> Lexer<'a> {
                         }
                     }
                     '1'..='9' => self.expect_number(10),
+                    'a'..='z' | 'A'..='Z' => self.expect_string(),
                     _ => Token::ILLEGAL,
                 }
             };
