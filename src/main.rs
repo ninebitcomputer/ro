@@ -10,6 +10,7 @@ pub mod eval;
 pub mod lexer;
 pub mod parser;
 pub mod tokens;
+pub mod util;
 
 fn main() {
     let s = "1-8+5*32/ 0x20 - 3 * (2 + 8)";

@@ -65,20 +65,30 @@ impl fmt::Display for Expr {
 impl Expr {
     pub fn pprint(&self) {
         let mut v: Vec<bool> = Vec::new();
-        self._pprint(&mut v);
+        self._pprint(&mut v, true);
     }
 
-    fn _pprint(&self, stack: &mut Vec<bool>) {
-        println!("{}", self);
+    fn _pprint(&self, stack: &mut Vec<bool>, last: bool) {
+        use crate::util::BoolStrMap;
+        stack.push(last);
+
+        let (end, pfx) = stack.split_last().unwrap();
+
+        let s = if *end { "└─" } else { "├─" };
+
+        println!("{}{}{}", BoolStrMap::new(pfx, "  ", "│ "), s, self);
+
         match self {
             Expr::Binop(b) => {
-                b.a._pprint(stack);
-                b.b._pprint(stack);
+                b.a._pprint(stack, false);
+                b.b._pprint(stack, true);
             }
             Expr::Unary(u) => {
-                u.x._pprint(stack);
+                u.x._pprint(stack, true);
             }
             _ => (),
-        }
+        };
+
+        stack.pop();
     }
 }
