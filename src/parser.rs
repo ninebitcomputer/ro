@@ -17,6 +17,7 @@ pub fn parse_expr(lexer: &mut Peekable<Lexer>, l: Option<Expr>, min_prec: u32) -
     };
 
     let mut lookahead = lexer.peek().cloned();
+
     while let Some(op) = lookahead
         && let Some(p) = op.token.to_prec()
         && p >= min_prec
@@ -25,7 +26,7 @@ pub fn parse_expr(lexer: &mut Peekable<Lexer>, l: Option<Expr>, min_prec: u32) -
         let mut rhs = expect_atomic(lexer)?;
         lookahead = lexer.peek().cloned();
 
-        while let Some(n_op) = lookahead
+        while let Some(n_op) = lookahead.as_ref()
             && let Some(n_p) = n_op.token.to_prec()
             && n_p > p
         {

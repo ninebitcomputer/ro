@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, PartialEq, Copy)]
+use std::rc::Rc;
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     PLUS,
     MINUS,
@@ -7,7 +9,11 @@ pub enum Token {
     LPAREN,
     RPAREN,
     NUMBER(u32),
+    IDENT(String),
     ILLEGAL,
+    IF,
+    ELSE,
+    SEMICOLON,
     EOF,
 }
 
