@@ -11,6 +11,7 @@ pub enum Op {
 #[derive(Debug)]
 pub enum UOp {
     Neg,
+    Pos,
 }
 
 #[derive(Debug)]
@@ -37,6 +38,7 @@ impl fmt::Display for UOp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UOp::Neg => write!(f, "-"),
+            UOp::Pos => write!(f, "+"),
         }
     }
 }

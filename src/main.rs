@@ -13,9 +13,9 @@ pub mod tokens;
 pub mod util;
 
 fn main() {
-    let s = "1-8+5*32/ 0x20 - 3 * (2 + 8)";
+    //let s = "1-8+5*32/ 0x20 - 3 * (2 + 8)";
+    let s = "6 - + + + - + - + + + 7";
     let mut lexer = lexer::Lexer::new(s.chars().peekable()).peekable();
-
     let r = parse_expr(&mut lexer, None, 0);
     println!("{:?}", r);
 

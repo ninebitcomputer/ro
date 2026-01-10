@@ -52,6 +52,14 @@ pub fn parse_expr(lexer: &mut Peekable<Lexer>, l: Option<Expr>, min_prec: u32) -
     Some(lhs)
 }
 
+pub fn parse_unary(t: &Token) -> Option<UOp> {
+    match t {
+        Token::PLUS => Some(UOp::Pos),
+        Token::MINUS => Some(UOp::Neg),
+        _ => None,
+    }
+}
+
 pub fn expect_atomic(lexer: &mut Peekable<Lexer>) -> Option<Expr> {
     let tk = lexer.peek()?.clone();
 
@@ -68,6 +76,13 @@ pub fn expect_atomic(lexer: &mut Peekable<Lexer>) -> Option<Expr> {
     } else if let Token::NUMBER(n) = tk.token {
         lexer.next();
         Some(Expr::Intermediate(n.into()))
+    } else if let Some(uop) = parse_unary(&tk.token) {
+        lexer.next();
+        let u = Unary {
+            op: uop,
+            x: Box::new(expect_atomic(lexer)?),
+        };
+        Some(Expr::Unary(u))
     } else {
         None
     }
