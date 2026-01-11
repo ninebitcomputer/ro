@@ -125,6 +125,7 @@ pub fn expect_atomic(lexer: &mut Peekable<Lexer>) -> Result<Expr, ParseError> {
         };
         Ok(Expr::Unary(u))
     } else if let Token::IDENT(s) = tk.token {
+        lexer.next();
         Ok(Expr::Ident(s.clone()))
     } else {
         Err(ParseError::new(
