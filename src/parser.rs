@@ -9,7 +9,36 @@ pub trait Parse {
         Self: Sized;
 }
 
-pub fn parse_expr(lexer: &mut Peekable<Lexer>, l: Option<Expr>, min_prec: u32) -> Option<Expr> {
+#[derive(Debug)]
+pub struct ParseError {
+    pub token: Option<LexedToken>,
+    pub reason: ParseErrorReason,
+}
+
+impl ParseError {
+    pub fn new(token: Option<LexedToken>, reason: ParseErrorReason) -> Self {
+        Self { token, reason }
+    }
+}
+
+#[derive(Debug)]
+pub enum ParseErrorReason {
+    BadBinOp,
+    BadUnary,
+    UnmatchedParens,
+    NonAtomicExpression,
+    StreamEnded,
+}
+
+pub fn parse_statement(lexer: &mut Peekable<Lexer>) -> Option<Statement> {
+    None
+}
+
+pub fn parse_expr(
+    lexer: &mut Peekable<Lexer>,
+    l: Option<Expr>,
+    min_prec: u32,
+) -> Result<Expr, ParseError> {
     let mut lhs = if let Some(x) = l {
         x
     } else {
@@ -40,7 +69,7 @@ pub fn parse_expr(lexer: &mut Peekable<Lexer>, l: Option<Expr>, min_prec: u32) -
             Token::ASTER => Op::Mul,
             Token::SLASH => Op::Div,
             _ => {
-                return None;
+                return Err(ParseError::new(Some(op), ParseErrorReason::BadBinOp));
             }
         };
 
@@ -50,7 +79,7 @@ pub fn parse_expr(lexer: &mut Peekable<Lexer>, l: Option<Expr>, min_prec: u32) -
             b: Box::new(rhs),
         })
     }
-    Some(lhs)
+    Ok(lhs)
 }
 
 pub fn parse_unary(t: &Token) -> Option<UOp> {
@@ -61,30 +90,46 @@ pub fn parse_unary(t: &Token) -> Option<UOp> {
     }
 }
 
-pub fn expect_atomic(lexer: &mut Peekable<Lexer>) -> Option<Expr> {
-    let tk = lexer.peek()?.clone();
+pub fn expect_peek(lexer: &mut Peekable<Lexer>) -> Result<LexedToken, ParseError> {
+    if let Some(tk) = lexer.peek() {
+        Ok(tk.clone())
+    } else {
+        Err(ParseError::new(None, ParseErrorReason::StreamEnded))
+    }
+}
+
+pub fn expect_atomic(lexer: &mut Peekable<Lexer>) -> Result<Expr, ParseError> {
+    let tk = expect_peek(lexer)?;
 
     if let Token::LPAREN = tk.token {
         lexer.next();
         let expr = parse_expr(lexer, None, 0)?;
-        let rhs = lexer.peek()?.clone();
+        let rhs = expect_peek(lexer)?;
         if let Token::RPAREN = rhs.token {
             lexer.next();
-            Some(expr)
+            Ok(expr)
         } else {
-            None
+            Err(ParseError::new(
+                Some(rhs),
+                ParseErrorReason::UnmatchedParens,
+            ))
         }
     } else if let Token::NUMBER(n) = tk.token {
         lexer.next();
-        Some(Expr::Intermediate(n.into()))
+        Ok(Expr::Intermediate(n.into()))
     } else if let Some(uop) = parse_unary(&tk.token) {
         lexer.next();
         let u = Unary {
             op: uop,
             x: Box::new(expect_atomic(lexer)?),
         };
-        Some(Expr::Unary(u))
+        Ok(Expr::Unary(u))
+    } else if let Token::IDENT(s) = tk.token {
+        Ok(Expr::Ident(s.clone()))
     } else {
-        None
+        Err(ParseError::new(
+            Some(tk),
+            ParseErrorReason::NonAtomicExpression,
+        ))
     }
 }

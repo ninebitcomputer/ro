@@ -1,6 +1,31 @@
 use std::fmt;
 
 #[derive(Debug)]
+pub enum LType {
+    Int,
+    Float,
+}
+
+#[derive(Debug)]
+pub enum Statement {
+    If {
+        guard: Box<Expr>,
+        t: Box<Statement>,
+        f: Option<Box<Statement>>,
+    },
+    Declare {
+        typ: LType,
+        ident: String,
+        assign: Option<Box<Expr>>,
+    },
+    Assign {
+        ident: String,
+        value: Box<Expr>,
+    },
+    Block(Vec<Statement>),
+}
+
+#[derive(Debug)]
 pub enum Op {
     Sub,
     Add,
@@ -19,6 +44,7 @@ pub enum Expr {
     Unary(Unary),
     Intermediate(i64),
     Binop(Binop),
+    Ident(String),
 }
 
 #[derive(Debug)]
@@ -60,6 +86,7 @@ impl fmt::Display for Expr {
             Expr::Unary(u) => write!(f, "{}", u.op),
             Expr::Binop(b) => write!(f, "{}", b.op),
             Expr::Intermediate(i) => write!(f, "{}", i),
+            Expr::Ident(s) => write!(f, "{}", s),
         }
     }
 }
