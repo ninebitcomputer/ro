@@ -77,7 +77,8 @@ impl<'a> Lexer<'a> {
     fn expect_string(&mut self) -> Token {
         let mut s = String::with_capacity(16);
         while let Some(x) = self.chars.peek()
-            && let 'a'..='z' | 'A'..='Z' = x
+            // 0..9 not first char
+            && let 'a'..='z' | 'A'..='Z' | '0'..='9' = x
         {
             s.push(*x);
             self.chars.next();

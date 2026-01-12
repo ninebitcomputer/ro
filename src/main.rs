@@ -8,7 +8,7 @@ pub mod tokens;
 pub mod util;
 
 fn main() {
-    let s = "1-8+5*32/ 0x20 - 3 * (2 + var) + 8";
+    let s = "1-var2+5*32/ 0x20 - 3 * (2 + var) + 8";
     let mut parser = Parser::new(s.chars());
 
     //let r = parse_expr(&mut lexer, None, 0);
