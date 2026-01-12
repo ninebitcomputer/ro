@@ -1,3 +1,4 @@
+use crate::util::TPrint;
 use std::fmt;
 
 #[derive(Debug)]
@@ -23,6 +24,80 @@ pub enum Statement {
         value: Box<Expr>,
     },
     Block(Vec<Statement>),
+}
+
+impl fmt::Display for LType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            LType::Float => write!(f, "float"),
+            LType::Int => write!(f, "int"),
+        }
+    }
+}
+
+impl fmt::Display for Statement {
+    fn fmt(&self, ft: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Statement::If { guard: _, t: _, f } => {
+                if let Some(_) = f {
+                    write!(ft, "if/else")
+                } else {
+                    write!(ft, "if")
+                }
+            }
+            Statement::Assign { ident: _, value: _ } => write!(ft, "assign"),
+            Statement::Block(_) => write!(ft, ""),
+            Statement::Declare {
+                typ,
+                ident,
+                assign: _,
+            } => {
+                write!(ft, "declare<{} {}>", typ, ident)
+            }
+        }
+    }
+}
+
+impl TPrint for Statement {
+    fn label(&self) -> String {
+        self.to_string()
+    }
+
+    fn children<'a>(&'a self) -> Box<dyn Iterator<Item = &'a dyn TPrint> + 'a> {
+        match self {
+            Statement::Declare {
+                typ: _,
+                ident: _,
+                assign,
+            } => {
+                if let Some(expr) = assign {
+                    let ptr: &'a dyn TPrint = expr.as_ref();
+                    Box::new([ptr].into_iter())
+                } else {
+                    Box::new(std::iter::empty())
+                }
+            }
+            Statement::Block(stmts) => {
+                let itr = stmts.iter().map(|s| s as &dyn TPrint);
+                Box::new(itr)
+            }
+            Statement::Assign { ident: _, value } => {
+                let ptr: &'a dyn TPrint = value.as_ref();
+                Box::new([ptr].into_iter())
+            }
+            Statement::If { guard, t, f } => {
+                let pg: &'a dyn TPrint = guard.as_ref();
+                let pt = t.iter().map(|s| s as &dyn TPrint);
+                let imm = [pg].into_iter().chain(pt);
+                if let Some(ff) = f {
+                    let pf = ff.iter().map(|s| s as &dyn TPrint);
+                    Box::new(imm.chain(pf))
+                } else {
+                    Box::new(imm)
+                }
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -90,8 +165,6 @@ impl fmt::Display for Expr {
         }
     }
 }
-
-use crate::util::TPrint;
 
 impl TPrint for Expr {
     fn label(&self) -> String {
