@@ -20,3 +20,31 @@ impl fmt::Display for BoolStrMap<'_> {
         Ok(())
     }
 }
+
+// pretty print tree
+pub trait TPrint {
+    fn label(&self) -> String;
+    fn children<'a>(&'a self) -> Box<dyn Iterator<Item = &'a dyn TPrint> + 'a>;
+
+    fn tprint(&self) {
+        let mut v: Vec<bool> = Vec::new();
+        self._tprint(&mut v, true);
+    }
+
+    fn _tprint(&self, stack: &mut Vec<bool>, last: bool) {
+        stack.push(last);
+
+        let (end, pfx) = stack.split_last().unwrap();
+        let s = if *end { "└─" } else { "├─" };
+
+        println!("{}{}{}", BoolStrMap::new(pfx, "  ", "│ "), s, self.label());
+
+        let kids: Vec<&dyn TPrint> = self.children().collect();
+        for (i, k) in kids.iter().enumerate() {
+            let last = i + 1 == kids.len();
+            k._tprint(stack, last);
+        }
+
+        stack.pop();
+    }
+}

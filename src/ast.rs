@@ -91,33 +91,25 @@ impl fmt::Display for Expr {
     }
 }
 
-impl Expr {
-    pub fn pprint(&self) {
-        let mut v: Vec<bool> = Vec::new();
-        self._pprint(&mut v, true);
+use crate::util::TPrint;
+
+impl TPrint for Expr {
+    fn label(&self) -> String {
+        self.to_string()
     }
 
-    fn _pprint(&self, stack: &mut Vec<bool>, last: bool) {
-        use crate::util::BoolStrMap;
-        stack.push(last);
-
-        let (end, pfx) = stack.split_last().unwrap();
-
-        let s = if *end { "└─" } else { "├─" };
-
-        println!("{}{}{}", BoolStrMap::new(pfx, "  ", "│ "), s, self);
-
+    fn children<'a>(&'a self) -> Box<dyn Iterator<Item = &'a dyn TPrint> + 'a> {
         match self {
-            Expr::Binop(b) => {
-                b.a._pprint(stack, false);
-                b.b._pprint(stack, true);
+            Expr::Binop(bin) => {
+                let a: &'a dyn TPrint = bin.a.as_ref();
+                let b: &'a dyn TPrint = bin.b.as_ref();
+                Box::new([a, b].into_iter())
             }
             Expr::Unary(u) => {
-                u.x._pprint(stack, true);
+                let e: &'a dyn TPrint = u.x.as_ref();
+                Box::new([e].into_iter())
             }
-            _ => (),
-        };
-
-        stack.pop();
+            _ => Box::new([].into_iter()),
+        }
     }
 }

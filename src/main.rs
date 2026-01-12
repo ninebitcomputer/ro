@@ -1,4 +1,5 @@
 use crate::parser::Parser;
+use crate::util::TPrint;
 
 pub mod ast;
 pub mod eval;
@@ -16,7 +17,7 @@ fn main() {
     println!("{:?}", r);
 
     if let Ok(e) = r {
-        e.pprint();
+        e.tprint();
     }
 
     /* while let Some(t) = lexer.next() {
