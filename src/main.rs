@@ -1,5 +1,4 @@
-use crate::lexer::LexedToken;
-use crate::parser::parse_expr;
+use crate::parser::Parser;
 
 pub mod ast;
 pub mod eval;
@@ -9,17 +8,11 @@ pub mod tokens;
 pub mod util;
 
 fn main() {
-    let s = "1-8+5*32/ 0x20 - 3 * (2 + var)";
+    let s = "1-8+5*32/ 0x20 - 3 * (2 + var) + 8";
+    let mut parser = Parser::new(s.chars());
 
-    /* {
-        let lexer = lexer::Lexer::new(s.chars().peekable()).peekable();
-        let tks: Vec<LexedToken> = lexer.collect();
-        println!("{:?}", tks);
-    } */
-
-    let mut lexer = lexer::Lexer::new(s.chars().peekable()).peekable();
-
-    let r = parse_expr(&mut lexer, None, 0);
+    //let r = parse_expr(&mut lexer, None, 0);
+    let r = parser.parse_expr(None, 0);
     println!("{:?}", r);
 
     if let Ok(e) = r {

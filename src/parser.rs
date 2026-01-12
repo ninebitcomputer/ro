@@ -3,6 +3,7 @@ use crate::lexer::*;
 use crate::tokens::*;
 
 use std::iter::Peekable;
+use std::str::Chars;
 pub trait Parse {
     fn parse(tokens: &[LexedToken]) -> Option<Self>
     where
@@ -25,112 +26,124 @@ impl ParseError {
 pub enum ParseErrorReason {
     BadBinOp,
     BadUnary,
-    UnmatchedParens,
+    ExpectedToken(Token),
     NonAtomicExpression,
     StreamEnded,
 }
 
-pub fn parse_statement(lexer: &mut Peekable<Lexer>) -> Option<Statement> {
-    None
+pub struct Parser<'a> {
+    lexer: Peekable<Lexer<'a>>,
 }
 
-pub fn parse_expr(
-    lexer: &mut Peekable<Lexer>,
-    l: Option<Expr>,
-    min_prec: u32,
-) -> Result<Expr, ParseError> {
-    let mut lhs = if let Some(x) = l {
-        x
-    } else {
-        expect_atomic(lexer)?
-    };
+//pub fn parse_statement(lexer: &mut Peekable<Lexer>) -> Result<Option<Statement>, ParseError> {}
 
-    let mut lookahead = lexer.peek().cloned();
-
-    while let Some(op) = lookahead
-        && let Some(p) = op.token.to_prec()
-        && p >= min_prec
-    {
-        lexer.next();
-        let mut rhs = expect_atomic(lexer)?;
-        lookahead = lexer.peek().cloned();
-
-        while let Some(n_op) = lookahead.as_ref()
-            && let Some(n_p) = n_op.token.to_prec()
-            && n_p > p
-        {
-            rhs = parse_expr(lexer, Some(rhs), p + 1)?;
-            lookahead = lexer.peek().cloned();
+impl<'a> Parser<'a> {
+    pub fn new(chars: Chars<'a>) -> Self {
+        Self {
+            lexer: Lexer::new(chars.peekable()).peekable(),
         }
+    }
 
-        let binop = match op.token {
-            Token::PLUS => Op::Add,
-            Token::MINUS => Op::Sub,
-            Token::ASTER => Op::Mul,
-            Token::SLASH => Op::Div,
-            _ => {
-                return Err(ParseError::new(Some(op), ParseErrorReason::BadBinOp));
-            }
+    pub fn parse_expr(&mut self, l: Option<Expr>, min_prec: u32) -> Result<Expr, ParseError> {
+        let mut lhs = if let Some(x) = l {
+            x
+        } else {
+            self.expect_atomic()?
         };
 
-        lhs = Expr::Binop(Binop {
-            a: Box::new(lhs),
-            op: binop,
-            b: Box::new(rhs),
-        })
+        let mut lookahead = self.lexer.peek().cloned();
+
+        while let Some(op) = lookahead
+            && let Some(p) = op.token.to_prec()
+            && p >= min_prec
+        {
+            self.lexer.next();
+            let mut rhs = self.expect_atomic()?;
+            lookahead = self.lexer.peek().cloned();
+
+            while let Some(n_op) = lookahead.as_ref()
+                && let Some(n_p) = n_op.token.to_prec()
+                && n_p > p
+            {
+                rhs = self.parse_expr(Some(rhs), p + 1)?;
+                lookahead = self.lexer.peek().cloned();
+            }
+
+            let binop = match op.token {
+                Token::PLUS => Op::Add,
+                Token::MINUS => Op::Sub,
+                Token::ASTER => Op::Mul,
+                Token::SLASH => Op::Div,
+                _ => {
+                    return Err(ParseError::new(Some(op), ParseErrorReason::BadBinOp));
+                }
+            };
+
+            lhs = Expr::Binop(Binop {
+                a: Box::new(lhs),
+                op: binop,
+                b: Box::new(rhs),
+            })
+        }
+        Ok(lhs)
     }
-    Ok(lhs)
-}
 
-pub fn parse_unary(t: &Token) -> Option<UOp> {
-    match t {
-        Token::PLUS => Some(UOp::Pos),
-        Token::MINUS => Some(UOp::Neg),
-        _ => None,
+    pub fn parse_unary(t: &Token) -> Option<UOp> {
+        match t {
+            Token::PLUS => Some(UOp::Pos),
+            Token::MINUS => Some(UOp::Neg),
+            _ => None,
+        }
     }
-}
 
-pub fn expect_peek(lexer: &mut Peekable<Lexer>) -> Result<LexedToken, ParseError> {
-    if let Some(tk) = lexer.peek() {
-        Ok(tk.clone())
-    } else {
-        Err(ParseError::new(None, ParseErrorReason::StreamEnded))
+    pub fn expect_peek(&mut self) -> Result<LexedToken, ParseError> {
+        if let Some(tk) = self.lexer.peek() {
+            Ok(tk.clone())
+        } else {
+            Err(ParseError::new(None, ParseErrorReason::StreamEnded))
+        }
     }
-}
 
-pub fn expect_atomic(lexer: &mut Peekable<Lexer>) -> Result<Expr, ParseError> {
-    let tk = expect_peek(lexer)?;
-
-    if let Token::LPAREN = tk.token {
-        lexer.next();
-        let expr = parse_expr(lexer, None, 0)?;
-        let rhs = expect_peek(lexer)?;
-        if let Token::RPAREN = rhs.token {
-            lexer.next();
-            Ok(expr)
+    // consumes target token
+    pub fn expect_token(&mut self, token: Token) -> Result<(), ParseError> {
+        let tk = self.expect_peek()?;
+        if tk.token == token {
+            self.lexer.next();
+            Ok(())
         } else {
             Err(ParseError::new(
-                Some(rhs),
-                ParseErrorReason::UnmatchedParens,
+                Some(tk),
+                ParseErrorReason::ExpectedToken(token),
             ))
         }
-    } else if let Token::NUMBER(n) = tk.token {
-        lexer.next();
-        Ok(Expr::Intermediate(n.into()))
-    } else if let Some(uop) = parse_unary(&tk.token) {
-        lexer.next();
-        let u = Unary {
-            op: uop,
-            x: Box::new(expect_atomic(lexer)?),
-        };
-        Ok(Expr::Unary(u))
-    } else if let Token::IDENT(s) = tk.token {
-        lexer.next();
-        Ok(Expr::Ident(s.clone()))
-    } else {
-        Err(ParseError::new(
-            Some(tk),
-            ParseErrorReason::NonAtomicExpression,
-        ))
+    }
+
+    pub fn expect_atomic(&mut self) -> Result<Expr, ParseError> {
+        let tk = self.expect_peek()?;
+
+        if let Token::LPAREN = tk.token {
+            self.lexer.next();
+            let expr = self.parse_expr(None, 0)?;
+            self.expect_token(Token::RPAREN)?;
+            Ok(expr)
+        } else if let Token::NUMBER(n) = tk.token {
+            self.lexer.next();
+            Ok(Expr::Intermediate(n.into()))
+        } else if let Some(uop) = Self::parse_unary(&tk.token) {
+            self.lexer.next();
+            let u = Unary {
+                op: uop,
+                x: Box::new(self.expect_atomic()?),
+            };
+            Ok(Expr::Unary(u))
+        } else if let Token::IDENT(s) = tk.token {
+            self.lexer.next();
+            Ok(Expr::Ident(s.clone()))
+        } else {
+            Err(ParseError::new(
+                Some(tk),
+                ParseErrorReason::NonAtomicExpression,
+            ))
+        }
     }
 }
