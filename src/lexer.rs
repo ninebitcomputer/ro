@@ -62,6 +62,7 @@ impl<'a> Lexer<'a> {
             '{' => Some(Token::LCURL),
             '}' => Some(Token::RCURL),
             ';' => Some(Token::SEMICOLON),
+            '=' => Some(Token::EQUAL),
             _ => None,
         }
     }

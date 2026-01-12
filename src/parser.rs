@@ -26,7 +26,9 @@ impl ParseError {
 pub enum ParseErrorReason {
     BadBinOp,
     BadUnary,
+    BadStatement,
     ExpectedToken(Token),
+    ExpectedIdentifier,
     NonAtomicExpression,
     StreamEnded,
 }
@@ -35,13 +37,85 @@ pub struct Parser<'a> {
     lexer: Peekable<Lexer<'a>>,
 }
 
-//pub fn parse_statement(lexer: &mut Peekable<Lexer>) -> Result<Option<Statement>, ParseError> {}
-
 impl<'a> Parser<'a> {
     pub fn new(chars: Chars<'a>) -> Self {
         Self {
             lexer: Lexer::new(chars.peekable()).peekable(),
         }
+    }
+
+    pub fn parse_statement(&mut self) -> Result<Option<Statement>, ParseError> {
+        if let Some(tk) = self.lexer.peek().cloned() {
+            match &tk.token {
+                Token::LCURL => {
+                    let s = self.parse_block()?;
+                    self.expect_token(Token::SEMICOLON)?;
+
+                    Ok(Some(Statement::Block(s)))
+                }
+                Token::IF => {
+                    self.lexer.next();
+                    let guard = Box::new(self.parse_expr(None, 0)?);
+                    let t = self.parse_block()?;
+                    let f = if self.accept_token(Token::ELSE) {
+                        Some(self.parse_block()?)
+                    } else {
+                        None
+                    };
+                    self.expect_token(Token::SEMICOLON)?;
+
+                    Ok(Some(Statement::If { guard, t, f }))
+                }
+                Token::IDENT(ident) => {
+                    self.lexer.next();
+                    self.expect_token(Token::EQUAL)?;
+                    let value = Box::new(self.parse_expr(None, 0)?);
+                    self.expect_token(Token::SEMICOLON)?;
+
+                    Ok(Some(Statement::Assign {
+                        ident: ident.clone(),
+                        value,
+                    }))
+                }
+                _ => {
+                    if let Some(typ) = self.lookup_type(&tk.token) {
+                        self.lexer.next();
+                        let ident = self.expect_identifier()?;
+
+                        let assign = if self.accept_token(Token::EQUAL) {
+                            Some(Box::new(self.parse_expr(None, 0)?))
+                        } else {
+                            None
+                        };
+                        self.expect_token(Token::SEMICOLON)?;
+
+                        Ok(Some(Statement::Declare { typ, ident, assign }))
+                    } else {
+                        Err(ParseError::new(Some(tk), ParseErrorReason::BadStatement))
+                    }
+                }
+            }
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn lookup_type(&self, t: &Token) -> Option<LType> {
+        Some(match t {
+            Token::INT => LType::Int,
+            Token::FLOAT => LType::Float,
+            _ => return None,
+        })
+    }
+
+    pub fn parse_block(&mut self) -> Result<Vec<Statement>, ParseError> {
+        self.expect_token(Token::LCURL)?;
+        let mut statements: Vec<Statement> = Vec::new();
+        while let Some(s) = self.parse_statement()? {
+            statements.push(s);
+        }
+        self.expect_token(Token::RCURL)?;
+        Ok(statements)
     }
 
     pub fn parse_expr(&mut self, l: Option<Expr>, min_prec: u32) -> Result<Expr, ParseError> {
@@ -115,6 +189,29 @@ impl<'a> Parser<'a> {
                 Some(tk),
                 ParseErrorReason::ExpectedToken(token),
             ))
+        }
+    }
+
+    pub fn expect_identifier(&mut self) -> Result<String, ParseError> {
+        let tk = self.expect_peek()?;
+        if let Token::IDENT(s) = tk.token {
+            Ok(s.clone())
+        } else {
+            Err(ParseError::new(
+                Some(tk),
+                ParseErrorReason::ExpectedIdentifier,
+            ))
+        }
+    }
+
+    pub fn accept_token(&mut self, token: Token) -> bool {
+        if let Some(tk) = self.lexer.peek()
+            && tk.token == token
+        {
+            self.lexer.next();
+            true
+        } else {
+            false
         }
     }
 

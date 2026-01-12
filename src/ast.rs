@@ -10,8 +10,8 @@ pub enum LType {
 pub enum Statement {
     If {
         guard: Box<Expr>,
-        t: Box<Statement>,
-        f: Option<Box<Statement>>,
+        t: Vec<Statement>,
+        f: Option<Vec<Statement>>,
     },
     Declare {
         typ: LType,

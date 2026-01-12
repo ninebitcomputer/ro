@@ -18,6 +18,7 @@ pub enum Token {
     IF,
     ELSE,
     SEMICOLON,
+    EQUAL,
     EOF,
 }
 
