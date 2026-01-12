@@ -15,18 +15,25 @@ pub struct LexedToken {
 
 pub struct Lexer<'a> {
     chars: Peekable<Chars<'a>>,
+    pos: u32,
 }
 
 impl<'a> Lexer<'a> {
     pub fn new(chars: Peekable<Chars<'a>>) -> Self {
-        Self { chars }
+        Self { chars, pos: 0 }
+    }
+
+    // use instead of self.chars.next() for position reporting
+    fn next_char(&mut self) -> Option<char> {
+        self.pos += 1;
+        self.chars.next()
     }
 
     fn consume_whitespace(&mut self) {
         while let Some(ch) = self.chars.peek()
             && ch.is_whitespace()
         {
-            self.chars.next();
+            self.next_char();
         }
     }
 
@@ -38,11 +45,11 @@ impl<'a> Lexer<'a> {
                 result *= radix;
                 result += d;
                 parsed += 1;
-                self.chars.next();
+                self.next_char();
             } else {
                 // illegal
                 if ch.is_alphabetic() {
-                    self.chars.next();
+                    self.next_char();
                     return None;
                 }
                 break;
@@ -82,7 +89,7 @@ impl<'a> Lexer<'a> {
             && let 'a'..='z' | 'A'..='Z' | '0'..='9' = x
         {
             s.push(*x);
-            self.chars.next();
+            self.next_char();
         }
         if s.len() == 0 {
             return Token::ILLEGAL;
@@ -108,17 +115,17 @@ impl<'a> Lexer<'a> {
         self.consume_whitespace();
         if let Some(ch) = self.chars.peek().cloned() {
             let tk = if let Some(t) = Lexer::match_single(ch) {
-                self.chars.next();
+                self.next_char();
                 t
             } else {
                 match ch {
                     '0' => {
-                        self.chars.next();
+                        self.next_char();
                         if let Some(pfx) = self.chars.peek().cloned() {
                             if pfx.is_numeric() {
                                 Token::ILLEGAL
                             } else if pfx.is_alphabetic() {
-                                self.chars.next();
+                                self.next_char();
                                 match pfx {
                                     'x' => self.expect_number(16),
                                     'o' => self.expect_number(8),
@@ -139,7 +146,7 @@ impl<'a> Lexer<'a> {
             };
 
             Some(LexedToken {
-                info: TokenInfo { position: 0 },
+                info: TokenInfo { position: self.pos },
                 token: tk,
             })
         } else {

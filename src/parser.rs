@@ -44,59 +44,57 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse_statement(&mut self) -> Result<Option<Statement>, ParseError> {
-        if let Some(tk) = self.lexer.peek().cloned() {
-            match &tk.token {
-                Token::LCURL => {
-                    let s = self.parse_block()?;
-                    self.expect_token(Token::SEMICOLON)?;
+    pub fn parse_statement(&mut self) -> Result<Statement, ParseError> {
+        let tk = self.expect_peek()?;
+        match &tk.token {
+            Token::LCURL => {
+                dbg!("block");
+                let s = self.parse_block()?;
+                self.expect_token(Token::SEMICOLON)?;
 
-                    Ok(Some(Statement::Block(s)))
-                }
-                Token::IF => {
+                Ok(Statement::Block(s))
+            }
+            Token::IF => {
+                self.lexer.next();
+                let guard = Box::new(self.parse_expr(None, 0)?);
+                let t = self.parse_block()?;
+                let f = if self.accept_token(Token::ELSE) {
+                    Some(self.parse_block()?)
+                } else {
+                    None
+                };
+                self.expect_token(Token::SEMICOLON)?;
+
+                Ok(Statement::If { guard, t, f })
+            }
+            Token::IDENT(ident) => {
+                self.lexer.next();
+                self.expect_token(Token::EQUAL)?;
+                let value = Box::new(self.parse_expr(None, 0)?);
+                self.expect_token(Token::SEMICOLON)?;
+
+                Ok(Statement::Assign {
+                    ident: ident.clone(),
+                    value,
+                })
+            }
+            _ => {
+                if let Some(typ) = self.lookup_type(&tk.token) {
                     self.lexer.next();
-                    let guard = Box::new(self.parse_expr(None, 0)?);
-                    let t = self.parse_block()?;
-                    let f = if self.accept_token(Token::ELSE) {
-                        Some(self.parse_block()?)
+                    let ident = self.expect_identifier()?;
+
+                    let assign = if self.accept_token(Token::EQUAL) {
+                        Some(Box::new(self.parse_expr(None, 0)?))
                     } else {
                         None
                     };
                     self.expect_token(Token::SEMICOLON)?;
 
-                    Ok(Some(Statement::If { guard, t, f }))
-                }
-                Token::IDENT(ident) => {
-                    self.lexer.next();
-                    self.expect_token(Token::EQUAL)?;
-                    let value = Box::new(self.parse_expr(None, 0)?);
-                    self.expect_token(Token::SEMICOLON)?;
-
-                    Ok(Some(Statement::Assign {
-                        ident: ident.clone(),
-                        value,
-                    }))
-                }
-                _ => {
-                    if let Some(typ) = self.lookup_type(&tk.token) {
-                        self.lexer.next();
-                        let ident = self.expect_identifier()?;
-
-                        let assign = if self.accept_token(Token::EQUAL) {
-                            Some(Box::new(self.parse_expr(None, 0)?))
-                        } else {
-                            None
-                        };
-                        self.expect_token(Token::SEMICOLON)?;
-
-                        Ok(Some(Statement::Declare { typ, ident, assign }))
-                    } else {
-                        Err(ParseError::new(Some(tk), ParseErrorReason::BadStatement))
-                    }
+                    Ok(Statement::Declare { typ, ident, assign })
+                } else {
+                    Err(ParseError::new(Some(tk), ParseErrorReason::BadStatement))
                 }
             }
-        } else {
-            Ok(None)
         }
     }
 
@@ -111,10 +109,11 @@ impl<'a> Parser<'a> {
     pub fn parse_block(&mut self) -> Result<Vec<Statement>, ParseError> {
         self.expect_token(Token::LCURL)?;
         let mut statements: Vec<Statement> = Vec::new();
-        while let Some(s) = self.parse_statement()? {
-            statements.push(s);
+
+        while !self.accept_token(Token::RCURL) {
+            statements.push(self.parse_statement()?);
         }
-        self.expect_token(Token::RCURL)?;
+
         Ok(statements)
     }
 
@@ -195,6 +194,7 @@ impl<'a> Parser<'a> {
     pub fn expect_identifier(&mut self) -> Result<String, ParseError> {
         let tk = self.expect_peek()?;
         if let Token::IDENT(s) = tk.token {
+            self.lexer.next();
             Ok(s.clone())
         } else {
             Err(ParseError::new(

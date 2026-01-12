@@ -9,15 +9,22 @@ pub mod tokens;
 pub mod util;
 
 fn main() {
-    let s = "1-var2+5*32/ 0x20 - 3 * (2 + var) + 8";
-    let mut parser = Parser::new(s.chars());
+    let e = "1-var2+5*32/ 0x20 - 3 * (2 + var) + 8";
+    let s = "{ int var = 3; if (var - 3) { var = var + 5;}; float x = y / 10; };";
 
-    //let r = parse_expr(&mut lexer, None, 0);
-    let r = parser.parse_expr(None, 0);
+    let mut eparser = Parser::new(e.chars());
+    let mut sparser = Parser::new(s.chars());
+
+    let r = eparser.parse_expr(None, 0);
     println!("{:?}", r);
+    if let Ok(expr) = r {
+        expr.tprint();
+    }
 
-    if let Ok(e) = r {
-        e.tprint();
+    let r = sparser.parse_statement();
+    println!("{:?}", r);
+    if let Ok(stmt) = r {
+        stmt.tprint();
     }
 
     /* while let Some(t) = lexer.next() {
