@@ -15,12 +15,17 @@ pub struct LexedToken {
 
 pub struct Lexer<'a> {
     chars: Peekable<Chars<'a>>,
+    end: bool,
     pos: u32,
 }
 
 impl<'a> Lexer<'a> {
     pub fn new(chars: Peekable<Chars<'a>>) -> Self {
-        Self { chars, pos: 0 }
+        Self {
+            chars,
+            pos: 0,
+            end: false,
+        }
     }
 
     // use instead of self.chars.next() for position reporting
@@ -150,7 +155,15 @@ impl<'a> Lexer<'a> {
                 token: tk,
             })
         } else {
-            None
+            if self.end {
+                None
+            } else {
+                self.end = true;
+                Some(LexedToken {
+                    info: TokenInfo { position: self.pos },
+                    token: Token::EOF,
+                })
+            }
         }
     }
 }

@@ -117,6 +117,14 @@ impl<'a> Parser<'a> {
         Ok(statements)
     }
 
+    pub fn parse_top(&mut self) -> Result<Vec<Statement>, ParseError> {
+        let mut stmts: Vec<Statement> = Vec::new();
+        while !self.accept_token(Token::EOF) {
+            stmts.push(self.parse_statement()?);
+        }
+        Ok(stmts)
+    }
+
     pub fn parse_expr(&mut self, l: Option<Expr>, min_prec: u32) -> Result<Expr, ParseError> {
         let mut lhs = if let Some(x) = l {
             x
@@ -242,5 +250,24 @@ impl<'a> Parser<'a> {
                 ParseErrorReason::NonAtomicExpression,
             ))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Parser;
+    use crate::ast::Statement;
+    use crate::util::TPrint;
+
+    #[test]
+    fn parse_fib_and_print_ast() {
+        let source = include_str!("ro/fib.ro");
+        let mut parser = Parser::new(source.chars());
+
+        let stmts = parser.parse_top().expect("fib.ro should parse");
+        //assert_eq!(stmts.len(), 3);
+        let blk = Statement::Block(stmts);
+        println!("fib.ro AST:");
+        blk.tprint();
     }
 }

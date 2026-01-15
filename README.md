@@ -32,3 +32,7 @@ if Expression Block [ else if Block ] [ else Block ] ;
 
 natural
 real
+
+# Testing
+
+`cargo test -- --nocapture` for ast parsing display
