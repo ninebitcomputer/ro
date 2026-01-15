@@ -104,7 +104,7 @@ impl<'a> Lexer<'a> {
     fn lookup_keyword(s: &str) -> Option<Token> {
         match s {
             "if" => Some(Token::IF),
-            "else" => Some(Token::IF),
+            "else" => Some(Token::ELSE),
             "int" => Some(Token::INT),
             "float" => Some(Token::FLOAT),
             _ => None,
