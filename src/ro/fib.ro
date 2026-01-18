@@ -2,7 +2,7 @@ fn fib(int n) -> int {
 	int a = 0;
 	int b = 1;
 
-	for (; n > 0; n=n-1) {
+	for (int n = 0; n > 0; n=n-1) {
 		int c = a + b;
 		int temp = b;
 		b = a;

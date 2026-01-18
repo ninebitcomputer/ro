@@ -1,5 +1,5 @@
 use crate::util::TPrint;
-use std::fmt;
+use std::{collections::HashMap, fmt};
 
 #[derive(Debug)]
 pub enum LType {
@@ -13,6 +13,8 @@ pub enum Statement {
     Declare(SDeclare),
     Assign(SAssign),
     For(SFor),
+    Call(SCall),
+    Function(SFunction),
     Block(Vec<Statement>),
 }
 
@@ -31,6 +33,13 @@ pub struct SDeclare {
 }
 
 #[derive(Debug)]
+pub struct SFunction {
+    pub ret: LType,
+    pub params: HashMap<String, LType>,
+    pub body: Vec<Statement>,
+}
+
+#[derive(Debug)]
 pub struct SAssign {
     pub ident: String,
     pub value: Box<Expr>,
@@ -40,6 +49,13 @@ pub struct SAssign {
 pub struct SFor {
     pub init: Option<Box<Statement>>,
     pub cont: Option<Box<Statement>>,
+    pub end: Option<Box<Statement>>,
+}
+
+#[derive(Debug)]
+pub struct SCall {
+    pub ident: String,
+    pub params: Vec<Expr>,
 }
 
 impl fmt::Display for LType {
