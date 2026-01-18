@@ -19,6 +19,12 @@ pub enum Token {
     ELSE,
     SEMICOLON,
     EQUAL,
+    EQUALEQUAL,
+    MINUSMINUS,
+    MINUSEQUAL,
+    PLUSPLUS,
+    PLUSEQUAL,
+    ARROW,
     EOF,
 }
 

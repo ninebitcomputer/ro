@@ -1,4 +1,14 @@
-int a = 0;
-int b = 1;
+fn fib(int n) -> int {
+	int a = 0;
+	int b = 1;
 
-int c = a + b * 8;
+	for (; n > 0; n=n-1) {
+		int c = a + b;
+		int temp = b;
+		b = a;
+		a = temp;
+	}
+	return a;
+}
+
+fib(3);

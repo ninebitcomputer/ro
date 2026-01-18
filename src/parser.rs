@@ -65,7 +65,7 @@ impl<'a> Parser<'a> {
                 };
                 self.expect_token(Token::SEMICOLON)?;
 
-                Ok(Statement::If { guard, t, f })
+                Ok(Statement::If(SIf { guard, t, f }))
             }
             Token::IDENT(ident) => {
                 self.lexer.next();
@@ -73,10 +73,10 @@ impl<'a> Parser<'a> {
                 let value = Box::new(self.parse_expr(None, 0)?);
                 self.expect_token(Token::SEMICOLON)?;
 
-                Ok(Statement::Assign {
+                Ok(Statement::Assign(SAssign {
                     ident: ident.clone(),
                     value,
-                })
+                }))
             }
             _ => {
                 if let Some(typ) = self.lookup_type(&tk.token) {
@@ -90,7 +90,7 @@ impl<'a> Parser<'a> {
                     };
                     self.expect_token(Token::SEMICOLON)?;
 
-                    Ok(Statement::Declare { typ, ident, assign })
+                    Ok(Statement::Declare(SDeclare { typ, ident, assign }))
                 } else {
                     Err(ParseError::new(Some(tk), ParseErrorReason::BadStatement))
                 }
@@ -261,7 +261,7 @@ mod tests {
 
     #[test]
     fn parse_fib_and_print_ast() {
-        let source = include_str!("ro/fib.ro");
+        let source = include_str!("ro/basic.ro");
         let mut parser = Parser::new(source.chars());
 
         let stmts = parser.parse_top().expect("fib.ro should parse");

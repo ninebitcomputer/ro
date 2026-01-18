@@ -9,21 +9,37 @@ pub enum LType {
 
 #[derive(Debug)]
 pub enum Statement {
-    If {
-        guard: Box<Expr>,
-        t: Vec<Statement>,
-        f: Option<Vec<Statement>>,
-    },
-    Declare {
-        typ: LType,
-        ident: String,
-        assign: Option<Box<Expr>>,
-    },
-    Assign {
-        ident: String,
-        value: Box<Expr>,
-    },
+    If(SIf),
+    Declare(SDeclare),
+    Assign(SAssign),
+    For(SFor),
     Block(Vec<Statement>),
+}
+
+#[derive(Debug)]
+pub struct SIf {
+    pub guard: Box<Expr>,
+    pub t: Vec<Statement>,
+    pub f: Option<Vec<Statement>>,
+}
+
+#[derive(Debug)]
+pub struct SDeclare {
+    pub typ: LType,
+    pub ident: String,
+    pub assign: Option<Box<Expr>>,
+}
+
+#[derive(Debug)]
+pub struct SAssign {
+    pub ident: String,
+    pub value: Box<Expr>,
+}
+
+#[derive(Debug)]
+pub struct SFor {
+    pub init: Option<Box<Statement>>,
+    pub cont: Option<Box<Statement>>,
 }
 
 impl fmt::Display for LType {
@@ -38,22 +54,19 @@ impl fmt::Display for LType {
 impl fmt::Display for Statement {
     fn fmt(&self, ft: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Statement::If { guard: _, t: _, f } => {
-                if let Some(_) = f {
+            Statement::If(sif) => {
+                if let Some(_) = sif.f {
                     write!(ft, "if/else")
                 } else {
                     write!(ft, "if")
                 }
             }
-            Statement::Assign { ident: _, value: _ } => write!(ft, "assign"),
+            Statement::Assign(_) => write!(ft, "assign"),
             Statement::Block(_) => write!(ft, ""),
-            Statement::Declare {
-                typ,
-                ident,
-                assign: _,
-            } => {
-                write!(ft, "declare<{} {}>", typ, ident)
+            Statement::Declare(declare) => {
+                write!(ft, "declare<{} {}>", declare.typ, declare.ident)
             }
+            _ => todo!(),
         }
     }
 }
@@ -65,12 +78,8 @@ impl TPrint for Statement {
 
     fn children<'a>(&'a self) -> Box<dyn Iterator<Item = &'a dyn TPrint> + 'a> {
         match self {
-            Statement::Declare {
-                typ: _,
-                ident: _,
-                assign,
-            } => {
-                if let Some(expr) = assign {
+            Statement::Declare(declare) => {
+                if let Some(expr) = &declare.assign {
                     let ptr: &'a dyn TPrint = expr.as_ref();
                     Box::new([ptr].into_iter())
                 } else {
@@ -81,21 +90,22 @@ impl TPrint for Statement {
                 let itr = stmts.iter().map(|s| s as &dyn TPrint);
                 Box::new(itr)
             }
-            Statement::Assign { ident: _, value } => {
-                let ptr: &'a dyn TPrint = value.as_ref();
+            Statement::Assign(assign) => {
+                let ptr: &'a dyn TPrint = assign.value.as_ref();
                 Box::new([ptr].into_iter())
             }
-            Statement::If { guard, t, f } => {
-                let pg: &'a dyn TPrint = guard.as_ref();
-                let pt = t.iter().map(|s| s as &dyn TPrint);
+            Statement::If(sif) => {
+                let pg: &'a dyn TPrint = sif.guard.as_ref();
+                let pt = sif.t.iter().map(|s| s as &dyn TPrint);
                 let imm = [pg].into_iter().chain(pt);
-                if let Some(ff) = f {
+                if let Some(ff) = &sif.f {
                     let pf = ff.iter().map(|s| s as &dyn TPrint);
                     Box::new(imm.chain(pf))
                 } else {
                     Box::new(imm)
                 }
             }
+            _ => todo!(),
         }
     }
 }

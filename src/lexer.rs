@@ -65,8 +65,6 @@ impl<'a> Lexer<'a> {
 
     fn match_single(c: char) -> Option<Token> {
         match c {
-            '+' => Some(Token::PLUS),
-            '-' => Some(Token::MINUS),
             '*' => Some(Token::ASTER),
             '/' => Some(Token::SLASH),
             '(' => Some(Token::LPAREN),
@@ -75,6 +73,21 @@ impl<'a> Lexer<'a> {
             '}' => Some(Token::RCURL),
             ';' => Some(Token::SEMICOLON),
             '=' => Some(Token::EQUAL),
+            _ => None,
+        }
+    }
+
+    fn match_minus_second(c: char) -> Option<Token> {
+        match c {
+            '-' => Some(Token::MINUSMINUS),
+            '>' => Some(Token::ARROW),
+            _ => None,
+        }
+    }
+
+    fn match_plus_second(c: char) -> Option<Token> {
+        match c {
+            '+' => Some(Token::PLUSPLUS),
             _ => None,
         }
     }
@@ -124,6 +137,28 @@ impl<'a> Lexer<'a> {
                 t
             } else {
                 match ch {
+                    '-' => {
+                        self.chars.next();
+                        if let Some(nch) = self.chars.peek()
+                            && let Some(tok) = Self::match_minus_second(*nch)
+                        {
+                            self.chars.next();
+                            tok
+                        } else {
+                            Token::MINUS
+                        }
+                    }
+                    '+' => {
+                        self.chars.next();
+                        if let Some(nch) = self.chars.peek()
+                            && let Some(tok) = Self::match_plus_second(*nch)
+                        {
+                            self.chars.next();
+                            tok
+                        } else {
+                            Token::PLUS
+                        }
+                    }
                     '0' => {
                         self.next_char();
                         if let Some(pfx) = self.chars.peek().cloned() {
