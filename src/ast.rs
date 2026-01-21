@@ -77,7 +77,7 @@ impl fmt::Display for Statement {
                     write!(ft, "if")
                 }
             }
-            Statement::Assign(_) => write!(ft, "assign"),
+            Statement::Assign(s) => write!(ft, "assign<{}>", s.ident),
             Statement::Block(_) => write!(ft, ""),
             Statement::Declare(declare) => {
                 write!(ft, "declare<{} {}>", declare.typ, declare.ident)
