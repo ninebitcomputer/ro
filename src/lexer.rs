@@ -121,10 +121,12 @@ impl<'a> Lexer<'a> {
 
     fn lookup_keyword(s: &str) -> Option<Token> {
         match s {
-            "if" => Some(Token::IF),
             "else" => Some(Token::ELSE),
-            "int" => Some(Token::INT),
             "float" => Some(Token::FLOAT),
+            "fn" => Some(Token::FN),
+            "for" => Some(Token::FOR),
+            "if" => Some(Token::IF),
+            "int" => Some(Token::INT),
             _ => None,
         }
     }
