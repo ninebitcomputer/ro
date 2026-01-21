@@ -82,6 +82,9 @@ impl fmt::Display for Statement {
             Statement::Declare(declare) => {
                 write!(ft, "declare<{} {}>", declare.typ, declare.ident)
             }
+            Statement::Call(c) => {
+                write!(ft, "call<{}()>", c.ident)
+            }
             _ => todo!(),
         }
     }
@@ -120,6 +123,10 @@ impl TPrint for Statement {
                 } else {
                     Box::new(imm)
                 }
+            }
+            Statement::Call(c) => {
+                let itr = c.params.iter().map(|s| s as &dyn TPrint);
+                Box::new(itr)
             }
             _ => todo!(),
         }

@@ -16,7 +16,7 @@ fn main() {
     let mut eparser = Parser::new(e.chars());
     let mut sparser = Parser::new(s.chars());
 
-    let r = eparser.parse_expr(None, 0);
+    let r = eparser.parse_expr_internal(None, 0);
     println!("{:?}", r);
     if let Ok(expr) = r {
         expr.tprint();

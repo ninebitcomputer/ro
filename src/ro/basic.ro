@@ -2,3 +2,8 @@ int a = 0;
 int b = 1;
 
 int c = a + b * 8;
+
+a = 5;
+b = 0;
+
+function((arg1 + 3) * 5, arg2);

@@ -56,7 +56,7 @@ impl<'a> Parser<'a> {
             }
             Token::IF => {
                 self.lexer.next();
-                let guard = Box::new(self.parse_expr(None, 0)?);
+                let guard = Box::new(self.parse_expr_internal(None, 0)?);
                 let t = self.parse_block()?;
                 let f = if self.accept_token(Token::ELSE) {
                     Some(self.parse_block()?)
@@ -67,16 +67,37 @@ impl<'a> Parser<'a> {
 
                 Ok(Statement::If(SIf { guard, t, f }))
             }
+            // assign
+            // call
+            // TODO could this be a match statement?
             Token::IDENT(ident) => {
                 self.lexer.next();
-                self.expect_token(Token::EQUAL)?;
-                let value = Box::new(self.parse_expr(None, 0)?);
-                self.expect_token(Token::SEMICOLON)?;
+                if self.accept_token(Token::EQUAL) {
+                    let value = Box::new(self.parse_expr()?);
+                    self.expect_token(Token::SEMICOLON)?;
 
-                Ok(Statement::Assign(SAssign {
-                    ident: ident.clone(),
-                    value,
-                }))
+                    Ok(Statement::Assign(SAssign {
+                        ident: ident.clone(),
+                        value,
+                    }))
+                } else {
+                    self.expect_token(Token::LPAREN)?;
+                    let mut args: Vec<Expr> = Vec::new();
+
+                    while self.expect_peek()?.token != Token::RPAREN {
+                        args.push(self.parse_expr()?);
+                        if !self.accept_token(Token::COMMA) {
+                            break;
+                        }
+                    }
+                    self.expect_token(Token::RPAREN)?;
+                    self.expect_token(Token::SEMICOLON)?;
+
+                    Ok(Statement::Call(SCall {
+                        ident: ident.clone(),
+                        params: args,
+                    }))
+                }
             }
             _ => {
                 if let Some(typ) = self.lookup_type(&tk.token) {
@@ -84,7 +105,7 @@ impl<'a> Parser<'a> {
                     let ident = self.expect_identifier()?;
 
                     let assign = if self.accept_token(Token::EQUAL) {
-                        Some(Box::new(self.parse_expr(None, 0)?))
+                        Some(Box::new(self.parse_expr_internal(None, 0)?))
                     } else {
                         None
                     };
@@ -125,7 +146,15 @@ impl<'a> Parser<'a> {
         Ok(stmts)
     }
 
-    pub fn parse_expr(&mut self, l: Option<Expr>, min_prec: u32) -> Result<Expr, ParseError> {
+    pub fn parse_expr(&mut self) -> Result<Expr, ParseError> {
+        self.parse_expr_internal(None, 0)
+    }
+
+    pub fn parse_expr_internal(
+        &mut self,
+        l: Option<Expr>,
+        min_prec: u32,
+    ) -> Result<Expr, ParseError> {
         let mut lhs = if let Some(x) = l {
             x
         } else {
@@ -146,7 +175,7 @@ impl<'a> Parser<'a> {
                 && let Some(n_p) = n_op.token.to_prec()
                 && n_p > p
             {
-                rhs = self.parse_expr(Some(rhs), p + 1)?;
+                rhs = self.parse_expr_internal(Some(rhs), p + 1)?;
                 lookahead = self.lexer.peek().cloned();
             }
 
@@ -212,6 +241,18 @@ impl<'a> Parser<'a> {
         }
     }
 
+    pub fn accept_ident(&mut self) -> Option<String> {
+        if let Some(tk) = self.lexer.peek()
+            && let Token::IDENT(s) = &tk.token
+        {
+            let cpy = s.clone();
+            self.lexer.next();
+            Some(cpy)
+        } else {
+            None
+        }
+    }
+
     pub fn accept_token(&mut self, token: Token) -> bool {
         if let Some(tk) = self.lexer.peek()
             && tk.token == token
@@ -228,7 +269,7 @@ impl<'a> Parser<'a> {
 
         if let Token::LPAREN = tk.token {
             self.lexer.next();
-            let expr = self.parse_expr(None, 0)?;
+            let expr = self.parse_expr_internal(None, 0)?;
             self.expect_token(Token::RPAREN)?;
             Ok(expr)
         } else if let Token::NUMBER(n) = tk.token {
@@ -264,10 +305,10 @@ mod tests {
         let source = include_str!("ro/basic.ro");
         let mut parser = Parser::new(source.chars());
 
-        let stmts = parser.parse_top().expect("fib.ro should parse");
+        let stmts = parser.parse_top().expect("basic.ro should parse");
         //assert_eq!(stmts.len(), 3);
         let blk = Statement::Block(stmts);
-        println!("fib.ro AST:");
+        println!("basic.ro AST:");
         blk.tprint();
     }
 }

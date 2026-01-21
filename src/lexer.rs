@@ -66,6 +66,7 @@ impl<'a> Lexer<'a> {
     fn match_single(c: char) -> Option<Token> {
         match c {
             '*' => Some(Token::ASTER),
+            ',' => Some(Token::COMMA),
             '/' => Some(Token::SLASH),
             '(' => Some(Token::LPAREN),
             ')' => Some(Token::RPAREN),

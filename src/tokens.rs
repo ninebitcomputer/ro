@@ -1,14 +1,15 @@
-use std::rc::Rc;
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     ARROW,
     ASTER,
+    COMMA,
     ELSE,
     EOF,
     EQUAL,
     EQUALEQUAL,
     FLOAT,
+    FN,
+    FOR,
     IDENT(String),
     IF,
     ILLEGAL,
