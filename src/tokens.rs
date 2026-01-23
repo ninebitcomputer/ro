@@ -9,13 +9,13 @@ pub enum Token {
     EQUALEQUAL,
     FLOAT,
     FN,
-    FOR,
     IDENT(String),
     IF,
     ILLEGAL,
     INT,
     LCURL,
     LPAREN,
+    LT,
     MINUS,
     MINUSEQUAL,
     MINUSMINUS,
@@ -27,6 +27,7 @@ pub enum Token {
     RPAREN,
     SEMICOLON,
     SLASH,
+    WHILE,
 }
 
 impl Token {
