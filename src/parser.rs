@@ -20,6 +20,14 @@ impl ParseError {
     pub fn new(token: Option<LexedToken>, reason: ParseErrorReason) -> Self {
         Self { token, reason }
     }
+
+    pub fn get_span(&self) -> Option<u32> {
+        if let Some(tk) = &self.token {
+            Some(tk.info.position)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -28,6 +36,7 @@ pub enum ParseErrorReason {
     BadUnary,
     BadStatement,
     ExpectedToken(Token),
+    ExpectedType,
     ExpectedIdentifier,
     NonAtomicExpression,
     StreamEnded,
@@ -99,6 +108,45 @@ impl<'a> Parser<'a> {
                     }))
                 }
             }
+            // while
+            Token::WHILE => {
+                self.lexer.next();
+                self.expect_token(Token::LPAREN)?;
+                let cond = Box::new(self.parse_expr()?);
+                self.expect_token(Token::RPAREN)?;
+
+                let body = self.parse_block()?;
+                Ok(Statement::While(SWhile { cond, body }))
+            }
+            // function decl
+            Token::FN => {
+                self.lexer.next();
+                let ident = self.expect_identifier()?;
+                self.expect_token(Token::LPAREN)?;
+
+                let mut params: Vec<(LType, String)> = Vec::new();
+                while self.expect_peek()?.token != Token::RPAREN {
+                    let x = self.expect_var_sig()?;
+                    params.push(x);
+                    if !self.accept_token(Token::COMMA) {
+                        break;
+                    }
+                }
+                self.expect_token(Token::RPAREN)?;
+                self.expect_token(Token::ARROW)?;
+
+                let ret = self.expect_type()?;
+                let body = self.parse_block()?;
+
+                self.expect_token(Token::SEMICOLON)?;
+
+                Ok(Statement::Function(SFunction {
+                    ident,
+                    ret,
+                    params,
+                    body,
+                }))
+            }
             _ => {
                 if let Some(typ) = self.lookup_type(&tk.token) {
                     self.lexer.next();
@@ -131,10 +179,11 @@ impl<'a> Parser<'a> {
         self.expect_token(Token::LCURL)?;
         let mut statements: Vec<Statement> = Vec::new();
 
-        while !self.accept_token(Token::RCURL) {
+        //TODO: wtf
+        while !(matches!(self.expect_peek()?.token, Token::RPAREN)) {
             statements.push(self.parse_statement()?);
         }
-
+        self.expect_token(Token::RPAREN)?;
         Ok(statements)
     }
 
@@ -228,6 +277,22 @@ impl<'a> Parser<'a> {
         }
     }
 
+    pub fn expect_type(&mut self) -> Result<LType, ParseError> {
+        let t = self.expect_peek()?;
+        if let Some(typ) = self.lookup_type(&t.token) {
+            self.lexer.next();
+            Ok(typ)
+        } else {
+            Err(ParseError::new(Some(t), ParseErrorReason::ExpectedType))
+        }
+    }
+
+    pub fn expect_var_sig(&mut self) -> Result<(LType, String), ParseError> {
+        let typ = self.expect_type()?;
+        let ident = self.expect_identifier()?;
+        Ok((typ, ident))
+    }
+
     pub fn expect_identifier(&mut self) -> Result<String, ParseError> {
         let tk = self.expect_peek()?;
         if let Token::IDENT(s) = tk.token {
@@ -301,12 +366,27 @@ mod tests {
     use crate::util::TPrint;
 
     #[test]
-    fn parse_fib_and_print_ast() {
+    fn parse_basic_and_print_ast() {
         let source = include_str!("ro/basic.ro");
         let mut parser = Parser::new(source.chars());
 
         let stmts = parser.parse_top().expect("basic.ro should parse");
         //assert_eq!(stmts.len(), 3);
+        let blk = Statement::Block(stmts);
+        println!("basic.ro AST:");
+        blk.tprint();
+    }
+
+    #[test]
+    fn parse_fib_and_print_ast() {
+        let source = include_str!("ro/fib.ro");
+        let mut parser = Parser::new(source.chars());
+
+        let stmts = parser.parse_top().unwrap_or_else(|e| {
+            eprintln!("parse_top failed: {e:?}");
+            panic!("fib.ro should parse");
+        });
+
         let blk = Statement::Block(stmts);
         println!("basic.ro AST:");
         blk.tprint();

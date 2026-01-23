@@ -12,7 +12,7 @@ pub enum Statement {
     If(SIf),
     Declare(SDeclare),
     Assign(SAssign),
-    For(SFor),
+    While(SWhile),
     Call(SCall),
     Function(SFunction),
     Block(Vec<Statement>),
@@ -35,7 +35,8 @@ pub struct SDeclare {
 #[derive(Debug)]
 pub struct SFunction {
     pub ret: LType,
-    pub params: HashMap<String, LType>,
+    pub ident: String,
+    pub params: Vec<(LType, String)>,
     pub body: Vec<Statement>,
 }
 
@@ -46,10 +47,9 @@ pub struct SAssign {
 }
 
 #[derive(Debug)]
-pub struct SFor {
-    pub init: Option<Box<Statement>>,
-    pub cont: Option<Box<Statement>>,
-    pub end: Option<Box<Statement>>,
+pub struct SWhile {
+    pub cond: Box<Expr>,
+    pub body: Vec<Statement>,
 }
 
 #[derive(Debug)]
@@ -85,7 +85,10 @@ impl fmt::Display for Statement {
             Statement::Call(c) => {
                 write!(ft, "call<{}()>", c.ident)
             }
-            _ => todo!(),
+            Statement::Function(f) => {
+                write!(ft, "fn <{}(todo) -> todo>>", f.ident)
+            }
+            Statement::While(_) => write!(ft, "while"),
         }
     }
 }
@@ -128,7 +131,16 @@ impl TPrint for Statement {
                 let itr = c.params.iter().map(|s| s as &dyn TPrint);
                 Box::new(itr)
             }
-            _ => todo!(),
+            Statement::Function(f) => {
+                let itr = f.body.iter().map(|s| s as &dyn TPrint);
+                Box::new(itr)
+            }
+            Statement::While(w) => {
+                let cond: &'a dyn TPrint = w.cond.as_ref();
+                let stmts = w.body.iter().map(|s| s as &dyn TPrint);
+
+                Box::new([cond].into_iter().chain(stmts))
+            }
         }
     }
 }
