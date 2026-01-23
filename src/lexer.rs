@@ -71,6 +71,8 @@ impl<'a> Lexer<'a> {
             '(' => Some(Token::LPAREN),
             ')' => Some(Token::RPAREN),
             '{' => Some(Token::LCURL),
+            '<' => Some(Token::LT),
+            '>' => Some(Token::GT),
             '}' => Some(Token::RCURL),
             ';' => Some(Token::SEMICOLON),
             '=' => Some(Token::EQUAL),
@@ -125,9 +127,9 @@ impl<'a> Lexer<'a> {
             "else" => Some(Token::ELSE),
             "float" => Some(Token::FLOAT),
             "fn" => Some(Token::FN),
-            "for" => Some(Token::FOR),
             "if" => Some(Token::IF),
             "int" => Some(Token::INT),
+            "while" => Some(Token::WHILE),
             _ => None,
         }
     }
