@@ -1,8 +1,8 @@
+use crate::ast::Statement;
 use crate::parser::Parser;
 use crate::util::TPrint;
 
 pub mod ast;
-pub mod eval;
 pub mod ir;
 pub mod lexer;
 pub mod parser;
@@ -10,25 +10,20 @@ pub mod tokens;
 pub mod util;
 
 fn main() {
-    let e = "1-var2+5*32/ 0x20 - 3 * (2 + var) + 8";
-    let s = "{ int var = 3; if (var - 3) { var = var + 5;}; float x = y / 10; };";
+    let source = include_str!("ro/fib.ro");
+    let mut parser = Parser::new(source.chars());
 
-    let mut eparser = Parser::new(e.chars());
-    let mut sparser = Parser::new(s.chars());
+    let stmts = parser.parse_top().unwrap_or_else(|e| {
+        eprintln!("parse_top failed: {e:?}");
+        panic!("fib.ro should parse");
+    });
 
-    let r = eparser.parse_expr_internal(None, 0);
-    println!("{:?}", r);
-    if let Ok(expr) = r {
-        expr.tprint();
-    }
-
-    let r = sparser.parse_statement();
-    println!("{:?}", r);
-    if let Ok(stmt) = r {
-        stmt.tprint();
-    }
+    let blk = Statement::Block(stmts);
+    println!("basic.ro AST:");
+    blk.tprint();
 
     /* while let Some(t) = lexer.next() {
         println!("{:?}", t);
+
     } */
 }

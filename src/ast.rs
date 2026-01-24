@@ -1,5 +1,5 @@
 use crate::util::TPrint;
-use std::{collections::HashMap, fmt};
+use std::fmt;
 
 #[derive(Debug)]
 pub enum LType {
@@ -86,7 +86,7 @@ impl fmt::Display for Statement {
                 write!(ft, "call<{}()>", c.ident)
             }
             Statement::Function(f) => {
-                write!(ft, "fn <{}(todo) -> todo>>", f.ident)
+                write!(ft, "fn <{}(todo) -> todo>", f.ident)
             }
             Statement::While(_) => write!(ft, "while"),
         }

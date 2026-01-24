@@ -213,8 +213,8 @@ impl<'a> Parser<'a> {
         let mut lookahead = self.lexer.peek().cloned();
 
         while let Some(op) = lookahead
-            && let Some(p) = op.token.to_prec()
-            && p >= min_prec
+            && let Some(op_info) = op.token.get_op_info()
+            && op_info.prec >= min_prec
         {
             self.lexer.next();
             let mut rhs = self.expect_atomic()?;
@@ -222,10 +222,9 @@ impl<'a> Parser<'a> {
 
             while let Some(n_op) = lookahead.as_ref()
                 && let Some(n_info) = n_op.token.get_op_info()
-                //&& let Some(n_p) = n_op.token.to_prec()
-                && n_info.prec > p
+                && n_info.prec > op_info.prec
             {
-                rhs = self.parse_expr_internal(Some(rhs), p + 1)?;
+                rhs = self.parse_expr_internal(Some(rhs), op_info.prec + 1)?;
                 lookahead = self.lexer.peek().cloned();
             }
 
@@ -363,33 +362,23 @@ impl<'a> Parser<'a> {
 #[cfg(test)]
 mod tests {
     use super::Parser;
-    use crate::ast::Statement;
-    use crate::util::TPrint;
 
     #[test]
-    fn parse_basic_and_print_ast() {
+    fn parse_basic() {
         let source = include_str!("ro/basic.ro");
         let mut parser = Parser::new(source.chars());
 
-        let stmts = parser.parse_top().expect("basic.ro should parse");
-        //assert_eq!(stmts.len(), 3);
-        let blk = Statement::Block(stmts);
-        println!("basic.ro AST:");
-        blk.tprint();
+        let _stmts = parser.parse_top().expect("basic.ro should parse");
     }
 
     #[test]
-    fn parse_fib_and_print_ast() {
+    fn parse_fib() {
         let source = include_str!("ro/fib.ro");
         let mut parser = Parser::new(source.chars());
 
-        let stmts = parser.parse_top().unwrap_or_else(|e| {
+        let _stmts = parser.parse_top().unwrap_or_else(|e| {
             eprintln!("parse_top failed: {e:?}");
             panic!("fib.ro should parse");
         });
-
-        let blk = Statement::Block(stmts);
-        println!("basic.ro AST:");
-        blk.tprint();
     }
 }

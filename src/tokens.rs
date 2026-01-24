@@ -37,26 +37,6 @@ pub struct OpInfo {
 }
 
 impl Token {
-    pub fn to_prec(&self) -> Option<u32> {
-        match self {
-            Token::PLUS => Some(0),
-            Token::MINUS => Some(0),
-            Token::ASTER => Some(1),
-            Token::SLASH => Some(1),
-            _ => None,
-        }
-    }
-
-    pub fn is_op(&self) -> bool {
-        match self {
-            Token::PLUS => true,
-            Token::MINUS => true,
-            Token::ASTER => true,
-            Token::SLASH => true,
-            _ => false,
-        }
-    }
-
     pub fn get_op_info(&self) -> Option<OpInfo> {
         Some(match self {
             Token::PLUS => OpInfo {
