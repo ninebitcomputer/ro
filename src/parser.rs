@@ -118,6 +118,12 @@ impl<'a> Parser<'a> {
                 let body = self.parse_block()?;
                 Ok(Statement::While(SWhile { cond, body }))
             }
+            Token::RETURN => {
+                self.lexer.next();
+                let expr = Box::new(self.parse_expr()?);
+                self.expect_token(Token::SEMICOLON)?;
+                Ok(Statement::Return(expr))
+            }
             // function decl
             Token::FN => {
                 self.lexer.next();
@@ -233,6 +239,9 @@ impl<'a> Parser<'a> {
                 Token::MINUS => Op::Sub,
                 Token::ASTER => Op::Mul,
                 Token::SLASH => Op::Div,
+                Token::GT => Op::Gt,
+                Token::LT => Op::Lt,
+                Token::EQUALEQUAL => Op::Eq,
                 _ => {
                     return Err(ParseError::new(Some(op), ParseErrorReason::BadBinOp));
                 }

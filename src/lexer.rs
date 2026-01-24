@@ -129,6 +129,7 @@ impl<'a> Lexer<'a> {
             "fn" => Some(Token::FN),
             "if" => Some(Token::IF),
             "int" => Some(Token::INT),
+            "return" => Some(Token::RETURN),
             "while" => Some(Token::WHILE),
             _ => None,
         }

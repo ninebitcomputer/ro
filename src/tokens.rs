@@ -25,6 +25,7 @@ pub enum Token {
     PLUSEQUAL,
     PLUSPLUS,
     RCURL,
+    RETURN,
     RPAREN,
     SEMICOLON,
     SLASH,

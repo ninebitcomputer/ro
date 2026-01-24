@@ -2,14 +2,16 @@ fn fib(int n) -> int {
 	int a = 0;
 	int b = 1;
 
-	int n = 0;
-	while (n) {
+	int i = 0;
+	while (i < n) {
 		int c = a + b;
 		int temp = b;
-		b = a;
+		b = c;
 		a = temp;
-		n = n - 1;
+		i = i + 1;
 	}
+
+	return a;
 };
 
 fib(3);

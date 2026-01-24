@@ -16,6 +16,7 @@ pub enum Statement {
     Call(SCall),
     Function(SFunction),
     Block(Vec<Statement>),
+    Return(Box<Expr>),
 }
 
 #[derive(Debug)]
@@ -88,6 +89,9 @@ impl fmt::Display for Statement {
             Statement::Function(f) => {
                 write!(ft, "fn <{}(todo) -> todo>", f.ident)
             }
+            Statement::Return(_) => {
+                write!(ft, "return")
+            }
             Statement::While(_) => write!(ft, "while"),
         }
     }
@@ -140,6 +144,10 @@ impl TPrint for Statement {
                 let stmts = w.body.iter().map(|s| s as &dyn TPrint);
 
                 Box::new([cond].into_iter().chain(stmts))
+            }
+            Statement::Return(expr) => {
+                let expr: &'a dyn TPrint = expr.as_ref();
+                Box::new([expr].into_iter())
             }
         }
     }
