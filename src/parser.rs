@@ -180,10 +180,10 @@ impl<'a> Parser<'a> {
         let mut statements: Vec<Statement> = Vec::new();
 
         //TODO: wtf
-        while !(matches!(self.expect_peek()?.token, Token::RPAREN)) {
+        while !(matches!(self.expect_peek()?.token, Token::RCURL)) {
             statements.push(self.parse_statement()?);
         }
-        self.expect_token(Token::RPAREN)?;
+        self.expect_token(Token::RCURL)?;
         Ok(statements)
     }
 
@@ -221,8 +221,9 @@ impl<'a> Parser<'a> {
             lookahead = self.lexer.peek().cloned();
 
             while let Some(n_op) = lookahead.as_ref()
-                && let Some(n_p) = n_op.token.to_prec()
-                && n_p > p
+                && let Some(n_info) = n_op.token.get_op_info()
+                //&& let Some(n_p) = n_op.token.to_prec()
+                && n_info.prec > p
             {
                 rhs = self.parse_expr_internal(Some(rhs), p + 1)?;
                 lookahead = self.lexer.peek().cloned();

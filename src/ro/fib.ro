@@ -3,15 +3,13 @@ fn fib(int n) -> int {
 	int b = 1;
 
 	int n = 0;
-	while (n > 0) {
+	while (n) {
 		int c = a + b;
 		int temp = b;
 		b = a;
 		a = temp;
 		n = n - 1;
 	}
-
-	return a;
-}
+};
 
 fib(3);
