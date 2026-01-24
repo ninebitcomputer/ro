@@ -151,6 +151,9 @@ pub enum Op {
     Add,
     Div,
     Mul,
+    Lt,
+    Gt,
+    Eq,
 }
 
 #[derive(Debug)]
@@ -196,6 +199,9 @@ impl fmt::Display for Op {
             Op::Mul => write!(f, "*"),
             Op::Sub => write!(f, "-"),
             Op::Add => write!(f, "+"),
+            Op::Lt => write!(f, "<"),
+            Op::Gt => write!(f, ">"),
+            Op::Eq => write!(f, "=="),
         }
     }
 }
