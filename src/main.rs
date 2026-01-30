@@ -3,6 +3,7 @@ use crate::parser::Parser;
 use crate::util::TPrint;
 
 pub mod ast;
+pub mod bound_ast;
 pub mod ir;
 pub mod lexer;
 pub mod parser;

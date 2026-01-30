@@ -36,3 +36,9 @@ real
 # Testing
 
 `cargo test -- --nocapture` for ast parsing display
+
+# Todo
+
+- [ ] Boolean type
+- [ ] Bound to unbound conversion
+- [ ] Environments within AST
