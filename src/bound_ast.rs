@@ -9,8 +9,8 @@ pub enum ASTError {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct RelSymID {
-    pub up: usize,
-    pub offset: usize,
+    pub level: usize,
+    pub id: usize,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -61,12 +61,12 @@ impl BAstEnv {
         id
     }
 
-    pub fn get_variable(&self, ident: &str) -> Option<usize> {
+    pub fn lookup_variable(&self, ident: &str) -> Option<usize> {
         self.variable_history.get(ident).copied()
     }
 
     pub fn variable_exists(&self, ident: &str) -> bool {
-        self.get_variable(ident).is_some()
+        self.lookup_variable(ident).is_some()
     }
 
     //TODO Unify params/args naming (see ast.rs)
@@ -181,17 +181,51 @@ impl<'a> EnvChain<'a> {
         Self { chain: Vec::new() }
     }
 
+    // chain is structured so idx 0 is always most recent env
     pub fn with<'b>(&'b self, env: &'b BAstEnv) -> EnvChain<'b>
     where
         'a: 'b,
     {
         let mut chain = Vec::with_capacity(self.chain.len() + 1);
-        chain.extend(self.chain.iter().copied());
         chain.push(env);
+        chain.extend(self.chain.iter().copied());
         EnvChain { chain }
     }
 
-    //pub fn lookup_variable(&self, ident: &str) -> Rel
+    pub fn lookup_variable(&self, ident: &str) -> Result<RelVarID, EnvError> {
+        self.lookup_variable_at(ident, 0)
+    }
+
+    pub fn lookup_variable_at(&self, ident: &str, level: usize) -> Result<RelVarID, EnvError> {
+        let mut level = level;
+        for env in self.chain.iter() {
+            if let Some(vid) = Self::lookup_single_env(env, ident, level) {
+                return Ok(vid);
+            }
+            level += 1;
+        }
+        Err(EnvError::SymbolNotFound)
+    }
+
+    pub fn lookup_variable_with_cur(
+        &self,
+        current_env: &BAstEnv,
+        ident: &str,
+    ) -> Result<RelVarID, EnvError> {
+        if let Some(vid) = Self::lookup_single_env(current_env, ident, 0) {
+            Ok(vid)
+        } else {
+            self.lookup_variable_at(ident, 1)
+        }
+    }
+
+    fn lookup_single_env(env: &BAstEnv, ident: &str, level: usize) -> Option<RelVarID> {
+        if let Some(id) = env.lookup_variable(ident) {
+            Some(RelVarID(RelSymID { level, id }))
+        } else {
+            None
+        }
+    }
 }
 
 fn convert_statements(ast: &Vec<Statement>, env_chain: EnvChain) -> Result<BAst, ASTError> {
@@ -218,4 +252,22 @@ fn convert_statements(ast: &Vec<Statement>, env_chain: EnvChain) -> Result<BAst,
     }
 
     todo!()
+}
+
+pub enum ExprError {
+    Env(EnvError),
+}
+
+pub fn convert_expr(expr: &Expr, env_chain: &EnvChain) -> Result<BExpr, ExprError> {
+    let r = match expr {
+        Expr::Unary(u) => {
+            let subexpr = convert_expr(&u.x, env_chain)?;
+            BExpr::Unary(BUnary {
+                op: u.op,
+                expr: Box::new(subexpr),
+            })
+        }
+        _ => todo!(),
+    };
+    Ok(r)
 }

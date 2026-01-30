@@ -164,7 +164,7 @@ pub enum Op {
     Eq,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum UOp {
     Neg,
     Pos,
