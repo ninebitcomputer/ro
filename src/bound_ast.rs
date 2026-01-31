@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 pub enum ASTError {
     BadFunction(FnDeclError),
+    BadExpr(ExprError),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -172,7 +173,7 @@ pub enum EnvError {
     SymbolNotFound,
 }
 
-struct EnvChain<'a> {
+pub struct EnvChain<'a> {
     pub chain: Vec<&'a BAstEnv>,
 }
 
@@ -228,7 +229,7 @@ impl<'a> EnvChain<'a> {
     }
 }
 
-fn convert_statements(ast: &Vec<Statement>, env_chain: EnvChain) -> Result<BAst, ASTError> {
+fn convert_statements(ast: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst, ASTError> {
     let mut env = BAstEnv::new();
     let mut stmts: Vec<BStmt> = Vec::new();
 
@@ -243,9 +244,18 @@ fn convert_statements(ast: &Vec<Statement>, env_chain: EnvChain) -> Result<BAst,
     let n = env_chain.with(&env);
 
     for stmt in ast.iter() {
-        match stmt {
+        let new_stmt = match stmt {
             Statement::If(iff) => {
-                todo!()
+                let if_env = env_chain.with(&env);
+                let guard = convert_expr_wrapped(&iff.guard, &if_env)?;
+                let t = convert_statements(&iff.t, &if_env)?;
+                let f = if let Some(ff) = &iff.f {
+                    Some(convert_statements(ff, &if_env)?)
+                } else {
+                    None
+                };
+
+                Some(BStmt::If(BIf { guard: Box::new(guard), t, f }))
             }
             _ => todo!(),
         }
@@ -258,6 +268,11 @@ pub enum ExprError {
     Env(EnvError),
 }
 
+pub fn convert_expr_wrapped(expr: &Expr, env_chain: &EnvChain) -> Result<BExpr, ASTError> {
+    convert_expr(expr, env_chain).map_err(|e| ASTError::BadExpr(e))
+}
+
+// TODO: Type checking
 pub fn convert_expr(expr: &Expr, env_chain: &EnvChain) -> Result<BExpr, ExprError> {
     let r = match expr {
         Expr::Unary(u) => {
@@ -267,7 +282,22 @@ pub fn convert_expr(expr: &Expr, env_chain: &EnvChain) -> Result<BExpr, ExprErro
                 expr: Box::new(subexpr),
             })
         }
-        _ => todo!(),
+        Expr::Intermediate(i) => BExpr::Intermediate(i.clone()),
+        Expr::Binop(bin) => {
+            let a = convert_expr(&bin.a, env_chain)?;
+            let b = convert_expr(&bin.b, env_chain)?;
+            BExpr::Binop(BBinop {
+                a: Box::new(a),
+                op: bin.op,
+                b: Box::new(b),
+            })
+        }
+        Expr::Ident(ident) => {
+            let sym = env_chain
+                .lookup_variable(ident)
+                .map_err(|e| ExprError::Env(e))?;
+            BExpr::Var(sym)
+        }
     };
     Ok(r)
 }

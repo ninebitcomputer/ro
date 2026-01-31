@@ -153,7 +153,7 @@ impl TPrint for Statement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Op {
     Sub,
     Add,
@@ -170,6 +170,7 @@ pub enum UOp {
     Pos,
 }
 
+//TODO: Function calls
 #[derive(Debug)]
 pub enum Expr {
     Unary(Unary),
