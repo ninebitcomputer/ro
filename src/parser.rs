@@ -348,7 +348,7 @@ impl<'a> Parser<'a> {
             Ok(expr)
         } else if let Token::NUMBER(n) = tk.token {
             self.lexer.next();
-            Ok(Expr::Intermediate(n.into()))
+            Ok(Expr::IntLit(n.into()))
         } else if let Some(uop) = Self::parse_unary(&tk.token) {
             self.lexer.next();
             let u = Unary {

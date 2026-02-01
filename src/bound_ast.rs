@@ -18,6 +18,12 @@ pub struct RelSymID {
 pub struct RelVarID(pub RelSymID);
 pub struct RelFnID(pub RelSymID);
 
+impl RelVarID {
+    pub fn new(level: usize, id: usize) -> Self {
+        Self(RelSymID { level, id })
+    }
+}
+
 pub struct VSymInfo {
     pub typ: LType,
     // TODO: Deprecate by forcing variable init on declare
@@ -68,6 +74,14 @@ impl BAstEnv {
 
     pub fn variable_exists(&self, ident: &str) -> bool {
         self.lookup_variable(ident).is_some()
+    }
+
+    fn lookup_function(&self, ident: &str) -> Option<usize> {
+        self.function_mappings.get(ident).copied()
+    }
+
+    pub fn function_exists(&self, ident: &str) -> bool {
+        self.lookup_function(ident).is_some()
     }
 
     //TODO Unify params/args naming (see ast.rs)
@@ -147,7 +161,8 @@ pub struct BCall {
 
 pub enum BExpr {
     Unary(BUnary),
-    Intermediate(i64),
+    IntLit(i64),
+    FloatLit(f32),
     Binop(BBinop),
     Var(RelVarID),
 }
@@ -166,6 +181,13 @@ pub struct BBinop {
 impl BExpr {
     pub fn get_type(&self) -> Result<LType, ASTError> {
         todo!()
+    }
+
+    pub fn default_value(typ: LType) -> BExpr {
+        match typ {
+            LType::Int => BExpr::IntLit(0),
+            LType::Float => BExpr::FloatLit(0.0),
+        }
     }
 }
 
@@ -200,7 +222,7 @@ impl<'a> EnvChain<'a> {
     pub fn lookup_variable_at(&self, ident: &str, level: usize) -> Result<RelVarID, EnvError> {
         let mut level = level;
         for env in self.chain.iter() {
-            if let Some(vid) = Self::lookup_single_env(env, ident, level) {
+            if let Some(vid) = Self::find_var_in_env(env, ident, level) {
                 return Ok(vid);
             }
             level += 1;
@@ -208,45 +230,35 @@ impl<'a> EnvChain<'a> {
         Err(EnvError::SymbolNotFound)
     }
 
-    pub fn lookup_variable_with_cur(
-        &self,
-        current_env: &BAstEnv,
-        ident: &str,
-    ) -> Result<RelVarID, EnvError> {
-        if let Some(vid) = Self::lookup_single_env(current_env, ident, 0) {
-            Ok(vid)
-        } else {
-            self.lookup_variable_at(ident, 1)
-        }
-    }
-
-    fn lookup_single_env(env: &BAstEnv, ident: &str, level: usize) -> Option<RelVarID> {
+    fn find_var_in_env(env: &BAstEnv, ident: &str, level: usize) -> Option<RelVarID> {
         if let Some(id) = env.lookup_variable(ident) {
             Some(RelVarID(RelSymID { level, id }))
         } else {
             None
         }
     }
+    fn find_fn_in_env(env: &BAstEnv, ident: &str, level: usize) -> Option<RelFnID> {
+        if let Some(id) = env.loo
+    }
 }
 
 fn convert_statements(ast: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst, ASTError> {
-    let mut env = BAstEnv::new();
+    let mut current_env = BAstEnv::new();
     let mut stmts: Vec<BStmt> = Vec::new();
 
     // load function definitions, then process all statements
     for stmt in ast.iter() {
         if let Statement::Function(f) = stmt {
-            env.new_function(f.ident.clone(), f.ret, &f.params)
+            current_env
+                .new_function(f.ident.clone(), f.ret, &f.params)
                 .map_err(|e| ASTError::BadFunction(e))?;
         }
     }
 
-    let n = env_chain.with(&env);
-
     for stmt in ast.iter() {
-        let new_stmt = match stmt {
+        match stmt {
             Statement::If(iff) => {
-                let if_env = env_chain.with(&env);
+                let if_env = env_chain.with(&current_env);
                 let guard = convert_expr_wrapped(&iff.guard, &if_env)?;
                 let t = convert_statements(&iff.t, &if_env)?;
                 let f = if let Some(ff) = &iff.f {
@@ -255,10 +267,40 @@ fn convert_statements(ast: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst
                     None
                 };
 
-                Some(BStmt::If(BIf { guard: Box::new(guard), t, f }))
+                stmts.push(BStmt::If(BIf {
+                    guard: Box::new(guard),
+                    t,
+                    f,
+                }))
+            }
+            Statement::Declare(d) => {
+                let assign = if let Some(e) = &d.assign {
+                    convert_expr_wrapped(e, &env_chain.with(&current_env))?
+                } else {
+                    BExpr::default_value(d.typ)
+                };
+
+                let id = current_env.new_variable(d.ident.clone(), d.typ);
+                stmts.push(BStmt::Assign(BAssign {
+                    ident: RelVarID::new(0, id),
+                    value: Box::new(assign),
+                }));
+            }
+            Statement::While(w) => {
+                let snapshot = env_chain.with(&current_env);
+                let cond = convert_expr_wrapped(&w.cond, &snapshot)?;
+                let body = convert_statements(&w.body, &snapshot)?;
+
+                stmts.push(BStmt::While(BWhile {
+                    cond: Box::new(cond),
+                    body,
+                }))
+            }
+            Statement::Call(c) => {
+                //let f = env_chain.with(&current_env).
             }
             _ => todo!(),
-        }
+        };
     }
 
     todo!()
@@ -282,7 +324,7 @@ pub fn convert_expr(expr: &Expr, env_chain: &EnvChain) -> Result<BExpr, ExprErro
                 expr: Box::new(subexpr),
             })
         }
-        Expr::Intermediate(i) => BExpr::Intermediate(i.clone()),
+        Expr::IntLit(i) => BExpr::IntLit(i.clone()),
         Expr::Binop(bin) => {
             let a = convert_expr(&bin.a, env_chain)?;
             let b = convert_expr(&bin.b, env_chain)?;

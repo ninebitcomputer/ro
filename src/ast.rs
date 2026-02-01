@@ -174,7 +174,7 @@ pub enum UOp {
 #[derive(Debug)]
 pub enum Expr {
     Unary(Unary),
-    Intermediate(i64),
+    IntLit(i64),
     Binop(Binop),
     Ident(String),
 }
@@ -220,7 +220,7 @@ impl fmt::Display for Expr {
         match self {
             Expr::Unary(u) => write!(f, "{}", u.op),
             Expr::Binop(b) => write!(f, "{}", b.op),
-            Expr::Intermediate(i) => write!(f, "{}", i),
+            Expr::IntLit(i) => write!(f, "{}", i),
             Expr::Ident(s) => write!(f, "{}", s),
         }
     }
