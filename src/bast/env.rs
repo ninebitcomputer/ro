@@ -1,6 +1,11 @@
 use crate::ast::*;
-use crate::bound_ast::*;
+use crate::bast::bound_ast::*;
 use std::collections::HashMap;
+
+pub enum FnDeclError {
+    DuplicateDecl,
+    DuplicateParam,
+}
 
 #[derive(Debug, Copy, Clone)]
 pub enum BAstEnvType {

@@ -1,83 +1,16 @@
 use crate::ast::*;
-use crate::env::*;
-
-//AST w/symbols resolved
+use crate::bast::bound_ast::*;
+use crate::bast::env::*;
 
 pub enum ASTError {
     BadFunction(FnDeclError),
     BadExpr(ExprError),
     Env(EnvError),
+    BadArity,
 }
 
-pub enum FnDeclError {
-    DuplicateDecl,
-    DuplicateParam,
-}
-
-pub struct BAst {
-    pub environment: BAstEnv,
-    pub statements: Vec<Statement>,
-}
-
-pub enum BStmt {
-    If(BIf),
-    Assign(BAssign),
-    While(BWhile),
-    Call(BCall),
-    Return(Box<BExpr>),
-}
-
-pub struct BIf {
-    pub guard: Box<BExpr>,
-    pub t: BAst,
-    pub f: Option<BAst>,
-}
-
-pub struct BAssign {
-    pub ident: RelVarID,
-    pub value: Box<BExpr>,
-}
-
-pub struct BWhile {
-    pub cond: Box<BExpr>,
-    pub body: BAst,
-}
-
-pub struct BCall {
-    pub ident: RelFnID,
-    pub args: Vec<BExpr>,
-}
-
-pub enum BExpr {
-    Unary(BUnary),
-    IntLit(i64),
-    FloatLit(f32),
-    Binop(BBinop),
-    Var(RelVarID),
-}
-
-pub struct BUnary {
-    pub op: UOp,
-    pub expr: Box<BExpr>,
-}
-
-pub struct BBinop {
-    pub a: Box<BExpr>,
-    pub op: Op,
-    pub b: Box<BExpr>,
-}
-
-impl BExpr {
-    pub fn get_type(&self) -> Result<LType, ASTError> {
-        todo!()
-    }
-
-    pub fn default_value(typ: LType) -> BExpr {
-        match typ {
-            LType::Int => BExpr::IntLit(0),
-            LType::Float => BExpr::FloatLit(0.0),
-        }
-    }
+pub enum ExprError {
+    Env(EnvError),
 }
 
 fn convert_statements(ast: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst, ASTError> {
@@ -135,20 +68,20 @@ fn convert_statements(ast: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst
                 }))
             }
             Statement::Call(c) => {
-                let f = env_chain
-                    .with(&current_env)
-                    .lookup_function(&c.ident)
+                let snapshot = env_chain.with(&current_env);
+
+                let finfo = snapshot
+                    .get_function_from_ident(&c.ident)
                     .map_err(|e| ASTError::Env(e))?;
+                if c.params.len() != finfo.args.len() {
+                    return Err(ASTError::BadArity);
+                }
             }
             _ => todo!(),
         };
     }
 
     todo!()
-}
-
-pub enum ExprError {
-    Env(EnvError),
 }
 
 pub fn convert_expr_wrapped(expr: &Expr, env_chain: &EnvChain) -> Result<BExpr, ASTError> {
