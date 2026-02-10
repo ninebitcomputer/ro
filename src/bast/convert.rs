@@ -21,12 +21,22 @@ pub enum ExprError {
     MismatchedTypes,
 }
 
-fn convert_statements(ast: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst, ASTError> {
-    let mut current_env = BAstEnv::new();
-    let mut stmts: Vec<BStmt> = Vec::new();
+fn convert_statements(stmts: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst, ASTError> {
+    let mut bast = BAst::new();
+    push_statements(stmts, &mut bast, env_chain)?;
+    Ok(bast)
+}
+
+fn push_statements(
+    stmts: &Vec<Statement>,
+    bast: &mut BAst,
+    env_chain: &EnvChain,
+) -> Result<BAst, ASTError> {
+    let current_env = &mut bast.environment;
+    let bstmts = &mut bast.statements;
 
     // load function definitions, then process all statements
-    for stmt in ast.iter() {
+    for stmt in stmts.iter() {
         if let Statement::Function(f) = stmt {
             current_env
                 .new_function(f.ident.clone(), f.ret, &f.params)
@@ -34,7 +44,7 @@ fn convert_statements(ast: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst
         }
     }
 
-    for stmt in ast.iter() {
+    for stmt in stmts.iter() {
         match stmt {
             Statement::If(iff) => {
                 let if_env = env_chain.with(&current_env);
@@ -46,7 +56,7 @@ fn convert_statements(ast: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst
                     None
                 };
 
-                stmts.push(BStmt::If(BIf {
+                bstmts.push(BStmt::If(BIf {
                     guard: Box::new(guard),
                     t,
                     f,
@@ -67,7 +77,7 @@ fn convert_statements(ast: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst
                 }
 
                 let id = current_env.new_variable(d.ident.clone(), d.typ);
-                stmts.push(BStmt::Assign(BAssign {
+                bstmts.push(BStmt::Assign(BAssign {
                     ident: RelVarID::new(0, id),
                     value: Box::new(assign),
                 }));
@@ -78,7 +88,7 @@ fn convert_statements(ast: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst
                 let cond = convert_expr_wrapped(&w.cond, &snapshot)?;
                 let body = convert_statements(&w.body, &snapshot)?;
 
-                stmts.push(BStmt::While(BWhile {
+                bstmts.push(BStmt::While(BWhile {
                     cond: Box::new(cond),
                     body,
                 }))
@@ -103,11 +113,22 @@ fn convert_statements(ast: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst
                     args.push(expr);
                 }
 
-                stmts.push(BStmt::Call(BCall { ident, args }));
+                bstmts.push(BStmt::Call(BCall { ident, args }));
             }
 
             Statement::Function(f) => {
-                let snapshot = env_chain.with(&current_env);
+                let id_opt = current_env.lookup(BAstEnvType::Functions, &f.ident);
+
+                if let Some(id) = id_opt {
+                    //TODO: expensive?
+                    let dummy = BAst::new();
+                    let mut fnbody = current_env.swap_function_body(id, dummy);
+                    {
+                        let snapshot = env_chain.with(&current_env);
+                        push_statements(&f.body, &mut fnbody, &snapshot)?;
+                    }
+                    current_env.swap_function_body(id, fnbody);
+                }
             }
             _ => todo!(),
         };

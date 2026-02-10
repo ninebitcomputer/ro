@@ -5,7 +5,16 @@ use crate::bast::env::*;
 
 pub struct BAst {
     pub environment: BAstEnv,
-    pub statements: Vec<Statement>,
+    pub statements: Vec<BStmt>,
+}
+
+impl BAst {
+    pub fn new() -> Self {
+        Self {
+            environment: BAstEnv::new(),
+            statements: Vec::new(),
+        }
+    }
 }
 
 pub enum BStmt {

@@ -81,6 +81,14 @@ impl BAstEnv {
         self.functions.get(id)
     }
 
+    // I think this is inefficient but idk
+    // Also kind of unsafe because easy to provide the wrong id
+    // TODO: wrap id in a struct where index is private
+    pub fn swap_function_body(&mut self, id: usize, body: BAst) -> BAst {
+        let s = &mut self.functions[id];
+        std::mem::replace(&mut s.body, body)
+    }
+
     pub fn lookup(&self, env: BAstEnvType, ident: &str) -> Option<usize> {
         self.get_env(env).get(ident).copied()
     }
