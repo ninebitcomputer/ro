@@ -1,4 +1,5 @@
 use crate::ast::Statement;
+use crate::bast::convert;
 use crate::parser::Parser;
 use crate::util::TPrint;
 
@@ -19,12 +20,15 @@ fn main() {
         panic!("fib.ro should parse");
     });
 
+    let transformed = convert::transform(&stmts);
+
     let blk = Statement::Block(stmts);
     println!("basic.ro AST:");
     blk.tprint();
 
-    /* while let Some(t) = lexer.next() {
-        println!("{:?}", t);
-
-    } */
+    if let Ok(bast) = transformed {
+        println!("successfully lowered program");
+    } else if let Err(e) = transformed {
+        println!("{:?}", e);
+    }
 }

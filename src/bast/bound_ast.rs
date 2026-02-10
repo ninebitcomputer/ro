@@ -3,10 +3,12 @@ use crate::bast::env::*;
 
 //AST w/symbols resolved
 
+#[derive(Debug)]
 pub enum TypeError {
     WrongType,
 }
 
+#[derive(Debug)]
 pub struct BAst {
     pub environment: BAstEnv,
     pub statements: Vec<BStmt>,
@@ -21,6 +23,7 @@ impl BAst {
     }
 }
 
+#[derive(Debug)]
 pub enum BStmt {
     If(BIf),
     Assign(BAssign),
@@ -30,32 +33,38 @@ pub enum BStmt {
     Block(Box<BAst>),
 }
 
+#[derive(Debug)]
 pub struct BIf {
     pub guard: Box<AnnotatedExpr>,
     pub t: BAst,
     pub f: Option<BAst>,
 }
 
+#[derive(Debug)]
 pub struct BAssign {
     pub ident: RelVarID,
     pub value: Box<AnnotatedExpr>,
 }
 
+#[derive(Debug)]
 pub struct BWhile {
     pub cond: Box<AnnotatedExpr>,
     pub body: BAst,
 }
 
+#[derive(Debug)]
 pub struct BCall {
     pub ident: RelFnID,
     pub args: Vec<AnnotatedExpr>,
 }
 
+#[derive(Debug)]
 pub struct AnnotatedExpr {
     pub typ: LType,
     pub body: BExpr,
 }
 
+#[derive(Debug)]
 pub enum BExpr {
     Unary(BUnary),
     IntLit(i64),
@@ -64,11 +73,13 @@ pub enum BExpr {
     Var(RelVarID),
 }
 
+#[derive(Debug)]
 pub struct BUnary {
     pub op: UOp,
     pub expr: Box<AnnotatedExpr>,
 }
 
+#[derive(Debug)]
 pub struct BBinop {
     pub a: Box<AnnotatedExpr>,
     pub op: Op,

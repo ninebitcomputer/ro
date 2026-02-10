@@ -2,11 +2,13 @@ use crate::ast::*;
 use crate::bast::bound_ast::*;
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub enum FnDeclError {
     DuplicateDecl,
     DuplicateParam,
 }
 
+#[derive(Debug)]
 pub enum EnvError {
     SymbolNotFound,
     BadReference,
@@ -18,12 +20,14 @@ pub enum BAstEnvType {
     Functions,
 }
 
+#[derive(Debug)]
 pub struct VSymInfo {
     pub typ: LType,
     // TODO: Deprecate by forcing variable init on declare
     pub init: bool, // do not use unitialized variables
 }
 
+#[derive(Debug)]
 pub struct FSymInfo {
     pub out: LType,
     pub args: Vec<LType>, //params are always the first n symbols
@@ -47,6 +51,7 @@ impl RelVarID {
     }
 }
 
+#[derive(Debug)]
 pub struct BAstEnv {
     pub variables: Vec<VSymInfo>,
     pub functions: Vec<FSymInfo>,
@@ -122,7 +127,7 @@ impl BAstEnv {
 
             for (typ, ident) in params.iter() {
                 fun_args.push(typ.clone());
-                if fun_env.exists(BAstEnvType::Variables, ident) {
+                if fun_env.exists(BAstEnvType::Functions, ident) {
                     return Err(FnDeclError::DuplicateParam);
                 }
                 fun_env.new_variable(ident.clone(), typ.clone());

@@ -2,6 +2,7 @@ use crate::ast::*;
 use crate::bast::bound_ast::*;
 use crate::bast::env::*;
 
+#[derive(Debug)]
 pub enum ASTError {
     BadFunction(FnDeclError),
     BadExpr(ExprError),
@@ -16,18 +17,24 @@ impl From<EnvError> for ASTError {
     }
 }
 
+#[derive(Debug)]
 pub enum ExprError {
     Env(EnvError),
     MismatchedTypes,
 }
 
-fn convert_statements(stmts: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst, ASTError> {
+pub fn transform(stmts: &Vec<Statement>) -> Result<BAst, ASTError> {
+    let chain = EnvChain::new();
+    Ok(convert_statements(stmts, &chain)?)
+}
+
+pub fn convert_statements(stmts: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst, ASTError> {
     let mut bast = BAst::new();
     push_statements(stmts, &mut bast, env_chain)?;
     Ok(bast)
 }
 
-fn push_statements(
+pub fn push_statements(
     stmts: &Vec<Statement>,
     bast: &mut BAst,
     env_chain: &EnvChain,
