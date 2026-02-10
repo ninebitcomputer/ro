@@ -13,28 +13,33 @@ pub enum BStmt {
     Assign(BAssign),
     While(BWhile),
     Call(BCall),
-    Return(Box<BExpr>),
+    Return(Box<AnnotatedExpr>),
 }
 
 pub struct BIf {
-    pub guard: Box<BExpr>,
+    pub guard: Box<AnnotatedExpr>,
     pub t: BAst,
     pub f: Option<BAst>,
 }
 
 pub struct BAssign {
     pub ident: RelVarID,
-    pub value: Box<BExpr>,
+    pub value: Box<AnnotatedExpr>,
 }
 
 pub struct BWhile {
-    pub cond: Box<BExpr>,
+    pub cond: Box<AnnotatedExpr>,
     pub body: BAst,
 }
 
 pub struct BCall {
     pub ident: RelFnID,
-    pub args: Vec<BExpr>,
+    pub args: Vec<AnnotatedExpr>,
+}
+
+pub struct AnnotatedExpr {
+    pub typ: LType,
+    pub body: BExpr,
 }
 
 pub enum BExpr {
@@ -47,13 +52,13 @@ pub enum BExpr {
 
 pub struct BUnary {
     pub op: UOp,
-    pub expr: Box<BExpr>,
+    pub expr: Box<AnnotatedExpr>,
 }
 
 pub struct BBinop {
-    pub a: Box<BExpr>,
+    pub a: Box<AnnotatedExpr>,
     pub op: Op,
-    pub b: Box<BExpr>,
+    pub b: Box<AnnotatedExpr>,
 }
 
 impl BExpr {
@@ -62,5 +67,11 @@ impl BExpr {
             LType::Int => BExpr::IntLit(0),
             LType::Float => BExpr::FloatLit(0.0),
         }
+    }
+}
+
+impl AnnotatedExpr {
+    pub fn cast_to(&mut self, typ: LType) -> bool {
+        self.typ == typ
     }
 }

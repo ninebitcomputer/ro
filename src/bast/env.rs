@@ -33,6 +33,7 @@ pub struct RelSymID {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct RelVarID(pub RelSymID);
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct RelFnID(pub RelSymID);
 
 impl RelVarID {
@@ -58,6 +59,14 @@ impl BAstEnv {
             variable_history: HashMap::new(),
             function_mappings: HashMap::new(),
         }
+    }
+
+    pub fn init_fn_env(&self, ident: &str) -> Option<Self> {
+        if let Some(id) = self.function_mappings.get(ident) {
+            let fninfo = &self.functions[*id];
+            let e = Self::new();
+        }
+        None
     }
 
     pub fn get_env(&self, env: BAstEnvType) -> &HashMap<String, usize> {
@@ -191,8 +200,9 @@ impl<'a> EnvChain<'a> {
         }
     }
 
-    pub fn get_variable_from_ident(&self, ident: &str) -> Result<&VSymInfo, EnvError> {
-        Ok(self.get_variable(self.lookup_variable(ident)?)?)
+    pub fn get_variable_from_ident(&self, ident: &str) -> Result<(RelVarID, &VSymInfo), EnvError> {
+        let loc = self.lookup_variable(ident)?;
+        Ok((loc, self.get_variable(loc)?))
     }
 
     pub fn lookup_function(&self, ident: &str) -> Result<RelFnID, EnvError> {
@@ -209,7 +219,8 @@ impl<'a> EnvChain<'a> {
         }
     }
 
-    pub fn get_function_from_ident(&self, ident: &str) -> Result<&FSymInfo, EnvError> {
-        Ok(self.get_function(self.lookup_function(ident)?)?)
+    pub fn get_function_from_ident(&self, ident: &str) -> Result<(RelFnID, &FSymInfo), EnvError> {
+        let loc = self.lookup_function(ident)?;
+        Ok((loc, self.get_function(loc)?))
     }
 }

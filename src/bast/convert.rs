@@ -7,10 +7,12 @@ pub enum ASTError {
     BadExpr(ExprError),
     Env(EnvError),
     BadArity,
+    WrongType,
 }
 
 pub enum ExprError {
     Env(EnvError),
+    MismatchedTypes,
 }
 
 fn convert_statements(ast: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst, ASTError> {
@@ -45,11 +47,18 @@ fn convert_statements(ast: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst
                 }))
             }
             Statement::Declare(d) => {
-                let assign = if let Some(e) = &d.assign {
+                let mut assign = if let Some(e) = &d.assign {
                     convert_expr_wrapped(e, &env_chain.with(&current_env))?
                 } else {
-                    BExpr::default_value(d.typ)
+                    AnnotatedExpr {
+                        typ: d.typ,
+                        body: BExpr::default_value(d.typ),
+                    }
                 };
+
+                if !assign.cast_to(d.typ) {
+                    return Err(ASTError::WrongType);
+                }
 
                 let id = current_env.new_variable(d.ident.clone(), d.typ);
                 stmts.push(BStmt::Assign(BAssign {
@@ -57,6 +66,7 @@ fn convert_statements(ast: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst
                     value: Box::new(assign),
                 }));
             }
+
             Statement::While(w) => {
                 let snapshot = env_chain.with(&current_env);
                 let cond = convert_expr_wrapped(&w.cond, &snapshot)?;
@@ -67,15 +77,33 @@ fn convert_statements(ast: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst
                     body,
                 }))
             }
+
             Statement::Call(c) => {
                 let snapshot = env_chain.with(&current_env);
 
-                let finfo = snapshot
+                let (ident, finfo) = snapshot
                     .get_function_from_ident(&c.ident)
                     .map_err(|e| ASTError::Env(e))?;
+
                 if c.params.len() != finfo.args.len() {
                     return Err(ASTError::BadArity);
                 }
+
+                let mut args: Vec<AnnotatedExpr> = Vec::with_capacity(c.params.len());
+                for i in 0..c.params.len() {
+                    let expected_type = finfo.args[i];
+                    let mut expr = convert_expr_wrapped(&c.params[i], &snapshot)?;
+                    if !expr.cast_to(expected_type) {
+                        return Err(ASTError::WrongType);
+                    }
+                    args.push(expr);
+                }
+
+                stmts.push(BStmt::Call(BCall { ident, args }));
+            }
+
+            Statement::Function(f) => {
+                let snapshot = env_chain.with(&current_env);
             }
             _ => todo!(),
         };
@@ -84,35 +112,53 @@ fn convert_statements(ast: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst
     todo!()
 }
 
-pub fn convert_expr_wrapped(expr: &Expr, env_chain: &EnvChain) -> Result<BExpr, ASTError> {
+pub fn convert_expr_wrapped(expr: &Expr, env_chain: &EnvChain) -> Result<AnnotatedExpr, ASTError> {
     convert_expr(expr, env_chain).map_err(|e| ASTError::BadExpr(e))
 }
 
-// TODO: Type checking
-pub fn convert_expr(expr: &Expr, env_chain: &EnvChain) -> Result<BExpr, ExprError> {
-    let r = match expr {
+// Maybe better to have BExpr implement an annotate method
+pub fn convert_expr(expr: &Expr, env_chain: &EnvChain) -> Result<AnnotatedExpr, ExprError> {
+    let r: AnnotatedExpr = match expr {
         Expr::Unary(u) => {
             let subexpr = convert_expr(&u.x, env_chain)?;
-            BExpr::Unary(BUnary {
+            let typ = subexpr.typ;
+            let body = BExpr::Unary(BUnary {
                 op: u.op,
                 expr: Box::new(subexpr),
-            })
+            });
+
+            AnnotatedExpr { typ, body }
         }
-        Expr::IntLit(i) => BExpr::IntLit(i.clone()),
+        Expr::IntLit(i) => AnnotatedExpr {
+            typ: LType::Int,
+            body: BExpr::IntLit(i.clone()),
+        },
         Expr::Binop(bin) => {
             let a = convert_expr(&bin.a, env_chain)?;
             let b = convert_expr(&bin.b, env_chain)?;
-            BExpr::Binop(BBinop {
+            if a.typ != b.typ {
+                return Err(ExprError::MismatchedTypes);
+            }
+
+            let typ = a.typ;
+
+            let body = BExpr::Binop(BBinop {
                 a: Box::new(a),
                 op: bin.op,
                 b: Box::new(b),
-            })
+            });
+            AnnotatedExpr { typ, body }
         }
         Expr::Ident(ident) => {
             let sym = env_chain
                 .lookup_variable(ident)
                 .map_err(|e| ExprError::Env(e))?;
-            BExpr::Var(sym)
+            let assoc = env_chain.get_variable(sym).map_err(|e| ExprError::Env(e))?;
+            let body = BExpr::Var(sym);
+            AnnotatedExpr {
+                typ: assoc.typ,
+                body,
+            }
         }
     };
     Ok(r)
