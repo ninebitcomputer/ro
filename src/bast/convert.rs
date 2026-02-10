@@ -5,9 +5,9 @@ use crate::bast::env::*;
 pub enum ASTError {
     BadFunction(FnDeclError),
     BadExpr(ExprError),
+    TypeError(TypeError),
     Env(EnvError),
     BadArity,
-    WrongType,
 }
 
 impl From<EnvError> for ASTError {
@@ -72,9 +72,7 @@ fn push_statements(
                     }
                 };
 
-                if !assign.cast_to(d.typ) {
-                    return Err(ASTError::WrongType);
-                }
+                assign.cast_to(d.typ).map_err(|e| ASTError::TypeError(e))?;
 
                 let id = current_env.new_variable(d.ident.clone(), d.typ);
                 bstmts.push(BStmt::Assign(BAssign {
@@ -107,9 +105,9 @@ fn push_statements(
                 for i in 0..c.params.len() {
                     let expected_type = finfo.args[i];
                     let mut expr = convert_expr_wrapped(&c.params[i], &snapshot)?;
-                    if !expr.cast_to(expected_type) {
-                        return Err(ASTError::WrongType);
-                    }
+
+                    expr.cast_to(expected_type)
+                        .map_err(|e| ASTError::TypeError(e))?;
                     args.push(expr);
                 }
 
@@ -130,7 +128,34 @@ fn push_statements(
                     current_env.swap_function_body(id, fnbody);
                 }
             }
-            _ => todo!(),
+            Statement::Assign(a) => {
+                let snapshot = env_chain.with(&current_env);
+                let (vid, vinfo) = snapshot.get_variable_from_ident(&a.ident)?;
+
+                let mut expr = convert_expr_wrapped(a.value.as_ref(), env_chain)?;
+                expr.cast_to(vinfo.typ)
+                    .map_err(|e| ASTError::TypeError(e))?;
+                let assign = BAssign {
+                    ident: vid,
+                    value: Box::new(expr),
+                };
+                bstmts.push(BStmt::Assign(assign));
+            }
+
+            Statement::Block(b) => {
+                let snapshot = env_chain.with(&current_env);
+                let mut a = BAst::new();
+
+                push_statements(&b, &mut a, &snapshot)?;
+
+                bstmts.push(BStmt::Block(Box::new(a)));
+            }
+
+            Statement::Return(r) => {
+                let snapshot = env_chain.with(&current_env);
+                let expr = convert_expr_wrapped(r.as_ref(), &snapshot)?;
+                bstmts.push(BStmt::Return(Box::new(expr)));
+            }
         };
     }
     Ok(())

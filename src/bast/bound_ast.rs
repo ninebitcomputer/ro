@@ -3,6 +3,10 @@ use crate::bast::env::*;
 
 //AST w/symbols resolved
 
+pub enum TypeError {
+    WrongType,
+}
+
 pub struct BAst {
     pub environment: BAstEnv,
     pub statements: Vec<BStmt>,
@@ -23,6 +27,7 @@ pub enum BStmt {
     While(BWhile),
     Call(BCall),
     Return(Box<AnnotatedExpr>),
+    Block(Box<BAst>),
 }
 
 pub struct BIf {
@@ -80,7 +85,11 @@ impl BExpr {
 }
 
 impl AnnotatedExpr {
-    pub fn cast_to(&mut self, typ: LType) -> bool {
-        self.typ == typ
+    pub fn cast_to(&mut self, typ: LType) -> Result<(), TypeError> {
+        if self.typ == typ {
+            Ok(())
+        } else {
+            Err(TypeError::WrongType)
+        }
     }
 }
