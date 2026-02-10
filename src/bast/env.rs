@@ -7,6 +7,11 @@ pub enum FnDeclError {
     DuplicateParam,
 }
 
+pub enum EnvError {
+    SymbolNotFound,
+    BadReference,
+}
+
 #[derive(Debug, Copy, Clone)]
 pub enum BAstEnvType {
     Variables,
@@ -59,14 +64,6 @@ impl BAstEnv {
             variable_history: HashMap::new(),
             function_mappings: HashMap::new(),
         }
-    }
-
-    pub fn init_fn_env(&self, ident: &str) -> Option<Self> {
-        if let Some(id) = self.function_mappings.get(ident) {
-            let fninfo = &self.functions[*id];
-            let e = Self::new();
-        }
-        None
     }
 
     pub fn get_env(&self, env: BAstEnvType) -> &HashMap<String, usize> {
@@ -139,11 +136,6 @@ impl BAstEnv {
             Ok(id)
         }
     }
-}
-
-pub enum EnvError {
-    SymbolNotFound,
-    BadReference,
 }
 
 pub struct EnvChain<'a> {

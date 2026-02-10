@@ -10,6 +10,12 @@ pub enum ASTError {
     WrongType,
 }
 
+impl From<EnvError> for ASTError {
+    fn from(value: EnvError) -> Self {
+        Self::Env(value)
+    }
+}
+
 pub enum ExprError {
     Env(EnvError),
     MismatchedTypes,
@@ -81,9 +87,7 @@ fn convert_statements(ast: &Vec<Statement>, env_chain: &EnvChain) -> Result<BAst
             Statement::Call(c) => {
                 let snapshot = env_chain.with(&current_env);
 
-                let (ident, finfo) = snapshot
-                    .get_function_from_ident(&c.ident)
-                    .map_err(|e| ASTError::Env(e))?;
+                let (ident, finfo) = snapshot.get_function_from_ident(&c.ident)?;
 
                 if c.params.len() != finfo.args.len() {
                     return Err(ASTError::BadArity);
