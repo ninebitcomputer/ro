@@ -31,7 +31,7 @@ fn push_statements(
     stmts: &Vec<Statement>,
     bast: &mut BAst,
     env_chain: &EnvChain,
-) -> Result<BAst, ASTError> {
+) -> Result<(), ASTError> {
     let current_env = &mut bast.environment;
     let bstmts = &mut bast.statements;
 
@@ -133,8 +133,7 @@ fn push_statements(
             _ => todo!(),
         };
     }
-
-    todo!()
+    Ok(())
 }
 
 pub fn convert_expr_wrapped(expr: &Expr, env_chain: &EnvChain) -> Result<AnnotatedExpr, ASTError> {

@@ -122,7 +122,7 @@ impl BAstEnv {
 
             for (typ, ident) in params.iter() {
                 fun_args.push(typ.clone());
-                if fun_env.exists(BAstEnvType::Functions, ident) {
+                if fun_env.exists(BAstEnvType::Variables, ident) {
                     return Err(FnDeclError::DuplicateParam);
                 }
                 fun_env.new_variable(ident.clone(), typ.clone());
@@ -140,6 +140,7 @@ impl BAstEnv {
             };
 
             self.functions.push(fun_info);
+            self.function_mappings.insert(ident.clone(), id);
 
             Ok(id)
         }
